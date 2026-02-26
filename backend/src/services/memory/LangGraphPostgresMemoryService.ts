@@ -1,5 +1,5 @@
 import { entrypoint, getPreviousState } from "@langchain/langgraph";
-import { PostgresSaver } from "@langchain/langgraph-checkpoint-postgres"; 
+import { PostgresSaver } from "@langchain/langgraph-checkpoint-postgres";
 import type { IMemoryService } from "../../interfaces/memory";
 import type { MemoryTurn } from "../../types/crag";
 
@@ -23,7 +23,7 @@ export class LangGraphPostgresMemoryService implements IMemoryService {
 
   constructor(options: LangGraphPostgresMemoryServiceOptions) {
     this.checkpointer = PostgresSaver.fromConnString(options.connectionString, {
-      schema: options.schema ?? "public"
+      schema: options.schema ?? "langgraph"
     });
 
     this.autoSetup = options.autoSetup ?? true;
@@ -32,7 +32,7 @@ export class LangGraphPostgresMemoryService implements IMemoryService {
     this.workflow = entrypoint<MemoryCommand, MemoryTurn[]>({
       name: "askmynotes_thread_memory",
       checkpointer: this.checkpointer
-    },(input) => {
+    }, (input) => {
       const previous = getPreviousState<MemoryTurn[]>() ?? [];
 
       if (input.action === "load") {
@@ -70,7 +70,6 @@ export class LangGraphPostgresMemoryService implements IMemoryService {
     }
 
     if (this.autoSetup) {
-
       await this.checkpointer.setup();
     }
 

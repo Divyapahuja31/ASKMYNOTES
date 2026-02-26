@@ -13,6 +13,8 @@
     "start": "node dist/server.js",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "checkpointer:setup": "ts-node src/scripts/setupCheckpointer.ts",
+    "better-auth:generate": "better-auth generate --config src/auth.ts --yes",
+    "ingest:pdf:query": "ts-node src/scripts/ingestAndQueryPdf.ts",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev"
   },
@@ -24,6 +26,7 @@
     "@langchain/langgraph-checkpoint-postgres": "^1.0.1",
     "@langchain/pinecone": "^1.0.1",
     "@pinecone-database/pinecone": "^5.1.2",
+    "@prisma/adapter-pg": "^7.4.1",
     "@prisma/client": "^7.4.1",
     "@react-email/components": "^1.0.8",
     "@react-email/render": "^2.0.4",
@@ -37,8 +40,12 @@
     "zod": "^4.3.6"
   },
   "devDependencies": {
+    "@better-auth/cli": "^1.4.19",
     "@types/express": "^5.0.6",
     "@types/node": "^25.3.1",
+    "@types/nodemailer": "^7.0.11",
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
     "prisma": "^7.4.1",
     "ts-node": "^10.9.2",
     "typescript": "^5.9.3"

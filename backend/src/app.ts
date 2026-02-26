@@ -1,8 +1,9 @@
 import express, { type Express, type NextFunction, type Request, type Response } from "express";
-import { GoogleGenerativeAIEmbeddings } from "@langchain/google-genai"; // Docs: https://docs.langchain.com/oss/javascript/integrations/text_embedding/google_generativeai
+import { GoogleGenerativeAIEmbeddings } from "@langchain/google-genai";
+import { toNodeHandler } from "better-auth/node";
 import { buildCragConfig } from "./config/cragConfig";
 import type { AppEnv } from "./config/env";
-import { loadEnv } from "./config/env";
+import { loadAppEnv } from "./config/env";
 import { AskController } from "./controllers/AskController";
 import { CragPipelineService } from "./services/crag/CragPipelineService";
 import { GeminiLangChainClient } from "./services/llm/GeminiLangChainClient";
@@ -16,6 +17,8 @@ import { LangChainPineconeStoreFactory } from "./services/retrieval/LangChainPin
 import { Reranker } from "./services/retrieval/Reranker";
 import { SubjectScopedRetriever } from "./services/retrieval/SubjectScopedRetriever";
 import { createAskRoutes } from "./routes/askRoutes";
+import { createBetterAuth } from "./services/auth/auth";
+import { createRequireAuth } from "./services/auth/requireAuth";
 
 export interface AppBootstrap {
   app: Express;
@@ -23,11 +26,13 @@ export interface AppBootstrap {
 }
 
 export function createApp(envInput?: AppEnv): AppBootstrap {
-  const env = envInput ?? loadEnv();
+  const env = envInput ?? loadAppEnv();
   const config = buildCragConfig(env);
 
-  const prismaProvider = new PrismaClientProvider();
+  const prismaProvider = new PrismaClientProvider(env.databaseUrl);
   const subjectRepository = new SubjectRepository(prismaProvider.getClient());
+  const auth = createBetterAuth(prismaProvider.getClient(), env);
+  const requireAuth = createRequireAuth(auth);
 
   const pinecone = new PineconeClientFactory({ apiKey: env.pineconeApiKey }).createClient();
   const embeddings = new GoogleGenerativeAIEmbeddings({
@@ -56,7 +61,8 @@ export function createApp(envInput?: AppEnv): AppBootstrap {
 
   const memoryService = new LangGraphPostgresMemoryService({
     connectionString: env.databaseUrl,
-    autoSetup: env.langGraphAutoSetup
+    autoSetup: env.langGraphAutoSetup,
+    schema: env.langGraphSchema
   });
 
   const postProcessor = new PostProcessor();
@@ -79,8 +85,9 @@ export function createApp(envInput?: AppEnv): AppBootstrap {
   });
 
   const app = express();
+  app.all("/api/auth/{*any}", toNodeHandler(auth));
   app.use(express.json());
-  app.use("/api", createAskRoutes(askController));
+  app.use("/api", createAskRoutes(askController, requireAuth));
 
   app.get("/health", (_req: Request, res: Response) => {
     res.status(200).json({ ok: true });

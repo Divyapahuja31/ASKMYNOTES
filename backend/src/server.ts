@@ -1,8 +1,8 @@
 import { createApp } from "./app";
-import { loadEnv } from "./config/env";
+import { loadAppEnv } from "./config/env";
 
 async function bootstrap(): Promise<void> {
-  const env = loadEnv();
+  const env = loadAppEnv();
   const { app, stop } = createApp(env);
 
   const server = app.listen(env.port, () => {

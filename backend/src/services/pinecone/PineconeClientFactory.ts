@@ -1,4 +1,4 @@
-import { Pinecone } from "@pinecone-database/pinecone"; // Docs: https://docs.pinecone.io/reference/sdks/node
+import { Pinecone } from "@pinecone-database/pinecone";
 
 export interface PineconeClientFactoryOptions {
   apiKey: string;

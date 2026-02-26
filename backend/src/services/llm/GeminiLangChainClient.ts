@@ -1,4 +1,4 @@
-import { ChatGoogleGenerativeAI } from "@langchain/google-genai"; // Docs: https://docs.langchain.com/oss/javascript/integrations/chat/google_generative_ai
+import { ChatGoogleGenerativeAI } from "@langchain/google-genai"; 
 import type { ILLMClient } from "../../interfaces/llmClient";
 import { GeminiNativeSdkClient } from "./GeminiNativeSdkClient";
 

@@ -1,6 +1,4 @@
-import dotenv from "dotenv";
-
-dotenv.config();
+import type { BetterAuthEnv } from "../services/auth/auth";
 
 function readEnv(name: string, fallback?: string): string {
   const value = process.env[name] ?? fallback;
@@ -38,55 +36,13 @@ function readOptionalEnv(name: string): string | undefined {
   return value;
 }
 
-export interface AppEnv {
+export interface AuthBootstrapEnv extends BetterAuthEnv {
   databaseUrl: string;
-  pineconeApiKey: string;
-  pineconeEnv: string;
-  pineconeIndex: string;
-  googleApiKey: string;
-  notFoundThreshold: number;
-  chunkSize: number;
-  chunkOverlap: number;
-  topK: number;
-  rerankTopN: number;
-  geminiModel: string;
-  port: number;
-  langGraphAutoSetup: boolean;
-  langGraphSchema: string;
-  betterAuthSecret: string;
-  betterAuthUrl: string;
-  betterAuthTrustedOrigins: string[];
-  smtpHost: string;
-  smtpPort: number;
-  smtpSecure: boolean;
-  smtpUser: string;
-  smtpPass: string;
-  smtpFrom: string;
-  googleOauthClientId?: string;
-  googleOauthClientSecret?: string;
 }
 
-export function loadAppEnv(): AppEnv {
-  const googleApiKey = process.env.GOOGLE_API_KEY ?? process.env.GEMINI_API_KEY;
-  if (!googleApiKey) {
-    throw new Error("Missing GOOGLE_API_KEY (or GEMINI_API_KEY).");
-  }
-
+export function loadAuthEnv(): AuthBootstrapEnv {
   return {
     databaseUrl: readEnv("DATABASE_URL"),
-    pineconeApiKey: readEnv("PINECONE_API_KEY"),
-    pineconeEnv: readEnv("PINECONE_ENV"),
-    pineconeIndex: readEnv("PINECONE_INDEX"),
-    googleApiKey,
-    notFoundThreshold: readNumberEnv("NOT_FOUND_THRESHOLD", 0.35),
-    chunkSize: readNumberEnv("CHUNK_SIZE", 1200),
-    chunkOverlap: readNumberEnv("CHUNK_OVERLAP", 200),
-    topK: readNumberEnv("TOP_K", 8),
-    rerankTopN: readNumberEnv("RERANK_TOP_N", 5),
-    geminiModel: readEnv("GEMINI_MODEL", "gemini-1.5-pro"),
-    port: readNumberEnv("PORT", 3001),
-    langGraphAutoSetup: readBooleanEnv("LANGGRAPH_AUTO_SETUP", true),
-    langGraphSchema: readEnv("LANGGRAPH_SCHEMA", "langgraph"),
     betterAuthSecret: readEnv("BETTER_AUTH_SECRET"),
     betterAuthUrl: readEnv("BETTER_AUTH_URL"),
     betterAuthTrustedOrigins: (process.env.BETTER_AUTH_TRUSTED_ORIGINS ?? "")
@@ -103,5 +59,3 @@ export function loadAppEnv(): AppEnv {
     googleOauthClientSecret: readOptionalEnv("GOOGLE_CLIENT_SECRET")
   };
 }
-
-export const loadEnv = loadAppEnv;

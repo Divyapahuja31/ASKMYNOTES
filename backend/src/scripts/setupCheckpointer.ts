@@ -1,11 +1,11 @@
-import { PostgresSaver } from "@langchain/langgraph-checkpoint-postgres"; // Docs: https://docs.langchain.com/oss/javascript/langgraph/add-memory
-import { loadEnv } from "../config/env";
+import { PostgresSaver } from "@langchain/langgraph-checkpoint-postgres";
+import { loadAppEnv } from "../config/env";
 
 async function main(): Promise<void> {
-  const env = loadEnv();
+  const env = loadAppEnv();
 
   const checkpointer = PostgresSaver.fromConnString(env.databaseUrl, {
-    schema: "public"
+    schema: env.langGraphSchema
   });
 
   await checkpointer.setup();

@@ -1,8 +1,10 @@
-CREATE TABLE IF NOT EXISTS public.checkpoint_migrations (
+CREATE SCHEMA IF NOT EXISTS langgraph;
+
+CREATE TABLE IF NOT EXISTS langgraph.checkpoint_migrations (
   v INTEGER PRIMARY KEY
 );
 
-CREATE TABLE IF NOT EXISTS public.checkpoints (
+CREATE TABLE IF NOT EXISTS langgraph.checkpoints (
   thread_id TEXT NOT NULL,
   checkpoint_ns TEXT NOT NULL DEFAULT '',
   checkpoint_id TEXT NOT NULL,
@@ -13,7 +15,7 @@ CREATE TABLE IF NOT EXISTS public.checkpoints (
   PRIMARY KEY (thread_id, checkpoint_ns, checkpoint_id)
 );
 
-CREATE TABLE IF NOT EXISTS public.checkpoint_blobs (
+CREATE TABLE IF NOT EXISTS langgraph.checkpoint_blobs (
   thread_id TEXT NOT NULL,
   checkpoint_ns TEXT NOT NULL DEFAULT '',
   channel TEXT NOT NULL,
@@ -23,7 +25,7 @@ CREATE TABLE IF NOT EXISTS public.checkpoint_blobs (
   PRIMARY KEY (thread_id, checkpoint_ns, channel, version)
 );
 
-CREATE TABLE IF NOT EXISTS public.checkpoint_writes (
+CREATE TABLE IF NOT EXISTS langgraph.checkpoint_writes (
   thread_id TEXT NOT NULL,
   checkpoint_ns TEXT NOT NULL DEFAULT '',
   checkpoint_id TEXT NOT NULL,

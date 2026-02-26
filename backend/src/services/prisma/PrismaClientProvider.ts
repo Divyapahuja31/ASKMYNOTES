@@ -1,11 +1,18 @@
-import { PrismaClient } from "@prisma/client";
+import { PrismaPg } from "@prisma/adapter-pg";
+import { PrismaClient } from "../../../generated/prisma/client";
 
 export class PrismaClientProvider {
+  private readonly databaseUrl: string;
   private client: PrismaClient | null = null;
+
+  constructor(databaseUrl: string) {
+    this.databaseUrl = databaseUrl;
+  }
 
   getClient(): PrismaClient {
     if (!this.client) {
-      this.client = new PrismaClient();
+      const adapter = new PrismaPg({ connectionString: this.databaseUrl });
+      this.client = new PrismaClient({ adapter });
     }
     return this.client;
   }

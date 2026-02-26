@@ -1,5 +1,5 @@
-import type { Pinecone } from "@pinecone-database/pinecone"; // Docs: https://docs.pinecone.io/reference/sdks/node
-import { GoogleGenerativeAIEmbeddings } from "@langchain/google-genai"; // Docs: https://docs.langchain.com/oss/javascript/integrations/text_embedding/google_generativeai
+import type { Pinecone } from "@pinecone-database/pinecone"; 
+import { GoogleGenerativeAIEmbeddings } from "@langchain/google-genai"; 
 import type { IRetriever } from "../../interfaces/retriever";
 import type { RetrievedChunk } from "../../types/crag";
 import type { LangChainPineconeStoreFactory } from "./LangChainPineconeStoreFactory";
@@ -23,7 +23,6 @@ export class SubjectScopedRetriever implements IRetriever {
     this.pineconeIndexName = options.pineconeIndexName;
     this.langChainStoreFactory = options.langChainStoreFactory;
 
-    // Embeddings constructor usage: https://docs.langchain.com/oss/javascript/integrations/text_embedding/google_generativeai
     this.embeddings = new GoogleGenerativeAIEmbeddings({
       apiKey: options.googleApiKey,
       model: options.embeddingModel ?? "text-embedding-004"
