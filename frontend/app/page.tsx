@@ -10,7 +10,6 @@ import {
   HowItWorks,
   BottomCTA,
 } from "@/src/components/CoreLandingPages/CompleteLandingPages/tsx/Sketchy";
-import Link from "next/link";
 
 // --- Main Layout ---
 export default function SketchyPage() {
