@@ -3,9 +3,10 @@
   "version": "0.1.0",
   "private": true,
   "description": "Controlled RAG backend for AskMyNotes",
-  "author":{
+  "author": {
     "name": "Team Horizon",
-    "email": "harsh@greenhacker.in"},
+    "email": "harsh@greenhacker.in"
+  },
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "dev": "ts-node src/server.ts",
@@ -16,6 +17,7 @@
     "prisma:migrate": "prisma migrate dev"
   },
   "dependencies": {
+    "@better-auth/cli": "^1.4.19",
     "@google/genai": "^1.43.0",
     "@langchain/google-genai": "^2.1.20",
     "@langchain/langgraph": "^1.1.5",
@@ -23,8 +25,15 @@
     "@langchain/pinecone": "^1.0.1",
     "@pinecone-database/pinecone": "^5.1.2",
     "@prisma/client": "^7.4.1",
+    "@react-email/components": "^1.0.8",
+    "@react-email/render": "^2.0.4",
+    "better-auth": "^1.4.19",
     "dotenv": "^17.3.1",
     "express": "^5.2.1",
+    "nodemailer": "^8.0.1",
+    "pdf-parse": "^2.4.5",
+    "react": "^19.2.4",
+    "react-dom": "^19.2.4",
     "zod": "^4.3.6"
   },
   "devDependencies": {
