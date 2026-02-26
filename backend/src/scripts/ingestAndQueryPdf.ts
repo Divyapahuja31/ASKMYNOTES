@@ -2,6 +2,7 @@ import dotenv from "dotenv";
 import { randomUUID } from "node:crypto";
 import { buildCragConfig } from "../config/cragConfig";
 import { loadAppEnv } from "../config/env";
+import { GeminiEmbeddingClient } from "../services/embeddings/GeminiEmbeddingClient";
 import { CragPipelineService } from "../services/crag/CragPipelineService";
 import { GeminiLangChainClient } from "../services/llm/GeminiLangChainClient";
 import { LangGraphPostgresMemoryService } from "../services/memory/LangGraphPostgresMemoryService";
@@ -99,7 +100,11 @@ async function main(): Promise<void> {
   const retriever = new SubjectScopedRetriever({
     pinecone,
     pineconeIndexName: env.pineconeIndex,
-    googleApiKey: env.googleApiKey
+    embeddingClient: new GeminiEmbeddingClient({
+      apiKey: env.googleApiKey,
+      model: env.embeddingModel,
+      outputDimensionality: env.embeddingDimension
+    })
   });
 
   const pipeline = new CragPipelineService({

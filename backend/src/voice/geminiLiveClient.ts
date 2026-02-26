@@ -144,8 +144,8 @@ export class GeminiLiveClient {
 
   private async connectSession(model: string, config: Record<string, unknown>): Promise<{
     session: {
-      sendRealtimeInput: (input: Record<string, unknown>) => Promise<void>;
-      sendClientContent: (content: Record<string, unknown>) => Promise<void>;
+      sendRealtimeInput: (input: Record<string, unknown>) => void;
+      sendClientContent: (content: Record<string, unknown>) => void;
       close: () => void;
     };
     responseQueue: LiveServerMessage[];

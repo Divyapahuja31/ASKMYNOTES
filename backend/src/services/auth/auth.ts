@@ -17,12 +17,13 @@ export interface BetterAuthEnv {
   smtpFrom: string;
   googleOauthClientId?: string;
   googleOauthClientSecret?: string;
+  resendApiKey?: string;
 }
 
 export function createBetterAuth(prisma: PrismaClient, env: BetterAuthEnv) {
   const hasSmtpCredentials =
-    env.smtpUser.trim().length > 0 &&
-    env.smtpPass.trim().length > 0;
+    (env.smtpUser.trim().length > 0 &&
+      env.smtpPass.trim().length > 0) || !!env.resendApiKey;
 
   const smtpSender = hasSmtpCredentials
     ? new SmtpEmailSender({
@@ -31,7 +32,8 @@ export function createBetterAuth(prisma: PrismaClient, env: BetterAuthEnv) {
       secure: env.smtpSecure,
       user: env.smtpUser,
       pass: env.smtpPass,
-      from: env.smtpFrom
+      from: env.smtpFrom,
+      resendApiKey: env.resendApiKey
     })
     : null;
 

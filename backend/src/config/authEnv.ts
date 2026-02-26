@@ -57,6 +57,7 @@ export function loadAuthEnv(): AuthBootstrapEnv {
     smtpPass: readEnv("SMTP_PASS"),
     smtpFrom: readEnv("SMTP_FROM"),
     googleOauthClientId: readOptionalEnv("GOOGLE_CLIENT_ID"),
-    googleOauthClientSecret: readOptionalEnv("GOOGLE_CLIENT_SECRET")
+    googleOauthClientSecret: readOptionalEnv("GOOGLE_CLIENT_SECRET"),
+    resendApiKey: readOptionalEnv("RESEND_API_KEY")
   };
 }
