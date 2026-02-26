@@ -1,16 +1,14 @@
-/**
- * PCM playback AudioWorklet processor.
- * Accepts Int16 PCM frames (24kHz) from the main thread and plays
- * them directly with a simple ring buffer. No resampling or effects.
- */
 class PcmPlaybackProcessor extends AudioWorkletProcessor {
     constructor() {
         super();
         this._buffer = new Float32Array(0);
+        this._primed = false;
+        this._prebufferSamples = Math.floor(sampleRate * 0.12); // ~120ms
         this.port.onmessage = (event) => {
             const msg = event.data;
             if (msg?.type === "clear") {
                 this._buffer = new Float32Array(0);
+                this._primed = false;
                 return;
             }
             if (msg?.type === "data" && msg.pcm) {
@@ -34,6 +32,15 @@ class PcmPlaybackProcessor extends AudioWorkletProcessor {
         const channel = output[0];
         const available = this._buffer.length;
 
+        if (!this._primed) {
+            if (available >= this._prebufferSamples) {
+                this._primed = true;
+            } else {
+                channel.fill(0);
+                return true;
+            }
+        }
+
         if (available >= channel.length) {
             channel.set(this._buffer.subarray(0, channel.length));
             this._buffer = this._buffer.subarray(channel.length);
@@ -41,8 +48,10 @@ class PcmPlaybackProcessor extends AudioWorkletProcessor {
             channel.set(this._buffer);
             channel.fill(0, available);
             this._buffer = new Float32Array(0);
+            this._primed = false;
         } else {
             channel.fill(0);
+            this._primed = false;
         }
 
         return true;
