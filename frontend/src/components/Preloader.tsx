@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { PenTool } from "lucide-react";
 import { GraphPaper } from "./CoreLandingPages/CompleteLandingPages/tsx/Sketchy";
 import { usePathname } from "next/navigation";
+import { AskMyNotesLogo } from "./AskMyNotesLogo";
 
 const loadingTexts = [
     "Sharpening pencils...",
@@ -70,7 +71,7 @@ export default function Preloader() {
                                 transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
                                 className="relative"
                             >
-                                <div className="h-16 w-16 rounded border-4 border-slate-900 bg-slate-800" style={{ filter: "url(#preloader-squiggle)" }} />
+                                <AskMyNotesLogo className="w-16 h-16" />
 
                                 {/* Floating doodles around the logo */}
                                 <motion.svg className="absolute -top-6 -right-8 w-10 h-10 text-yellow-400" viewBox="0 0 50 50"

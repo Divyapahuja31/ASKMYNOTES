@@ -9,6 +9,7 @@ import { authClient } from "@/src/lib/auth-client";
 import { GraphPaper } from "@/src/components/CoreLandingPages/CompleteLandingPages/tsx/GraphPaper";
 import { SketchButton } from "@/src/components/CoreLandingPages/CompleteLandingPages/tsx/SketchButton";
 import { SquiggleFilter } from "@/src/components/CoreLandingPages/CompleteLandingPages/tsx/SquiggleFilter";
+import { AskMyNotesLogo } from "@/src/components/AskMyNotesLogo";
 
 export default function ResetPasswordPage(): React.ReactElement {
     const router = useRouter();
@@ -74,7 +75,7 @@ export default function ResetPasswordPage(): React.ReactElement {
                     href="/"
                     className="flex items-center gap-2 text-xl font-black tracking-tighter hover:scale-105 transition-transform"
                 >
-                    <div className="h-8 w-8 rounded border-2 border-slate-900 bg-slate-800" />
+                    <AskMyNotesLogo />
                     AskMyNotes.
                 </Link>
                 <Link

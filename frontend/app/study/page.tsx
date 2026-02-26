@@ -23,11 +23,21 @@ import type {
   ShortAnswer,
 } from "@/src/components/dashboard/types";
 import { SUBJECT_COLORS } from "@/src/components/dashboard/types";
+import { askNotesAction, type AskResponsePayload } from "@/src/lib/actions";
+import { authClient } from "@/src/lib/auth-client";
+import { AskMyNotesLogo } from "@/src/components/AskMyNotesLogo";
 
 // ── Helpers ──
 
 function createId(): string {
   return `id-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+}
+
+interface QueryForm {
+  question: string;
+  subjectId: string;
+  subjectName: string;
+  threadId: string;
 }
 
 function createThreadId(): string {
@@ -283,12 +293,12 @@ export default function DashboardPage() {
       <GraphPaper />
 
       {/* Top Navbar */}
-      <nav className="relative z-40 flex items-center justify-between px-4 md:px-6 py-3 bg-[#fdfbf7]/90 backdrop-blur-sm border-b-2 border-slate-200">
+      <nav className="sticky top-0 z-40 flex items-center justify-between px-6 py-5 bg-[#fdfbf7] border-b-2 border-slate-200">
         <Link
           href="/"
-          className="flex items-center gap-2 text-lg font-black tracking-tighter hover:scale-105 transition-transform"
+          className="flex items-center gap-2 text-xl font-black tracking-tighter hover:scale-105 transition-transform"
         >
-          <div className="h-7 w-7 rounded border-2 border-slate-900 bg-slate-800" />
+          <AskMyNotesLogo />
           AskMyNotes.
         </Link>
 
