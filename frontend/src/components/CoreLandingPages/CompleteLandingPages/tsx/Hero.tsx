@@ -3,6 +3,7 @@
 import { motion } from "framer-motion";
 import { ArrowRight, PenTool } from "lucide-react";
 import { SketchButton } from "./SketchButton";
+import Link from "next/link";
 
 // Hero Section with animated heading, live drawing preview, and CTAs
 export function Hero() {
@@ -56,9 +57,11 @@ export function Hero() {
             </p>
 
             <div className="mt-12 flex gap-6">
-                <SketchButton>
-                    Get Started <ArrowRight size={18} />
-                </SketchButton>
+                <Link href="/register">
+                    <SketchButton>
+                        Get Started <ArrowRight size={18} />
+                    </SketchButton>
+                </Link>
                 <button className="px-6 py-3 font-mono text-sm font-bold text-slate-500 underline decoration-wavy underline-offset-4 hover:text-slate-900">
                     How It Works
                 </button>

@@ -4,6 +4,7 @@ import { useRef } from "react";
 import { motion, useInView } from "framer-motion";
 import { ArrowRight } from "lucide-react";
 import { SketchButton } from "./SketchButton";
+import Link from "next/link";
 
 // Bottom call-to-action with dashed offset border
 export function BottomCTA() {
@@ -27,9 +28,11 @@ export function BottomCTA() {
                         <p className="text-slate-500 mb-6 max-w-md mx-auto">
                             Stop drowning in notes. Let AskMyNotes find the answers for you — with proof.
                         </p>
-                        <SketchButton className="mx-auto">
-                            Start Studying Smarter <ArrowRight size={18} />
-                        </SketchButton>
+                        <Link href="/register">
+                            <SketchButton className="mx-auto">
+                                Start Studying Smarter <ArrowRight size={18} />
+                            </SketchButton>
+                        </Link>
                     </div>
                 </div>
             </motion.div>

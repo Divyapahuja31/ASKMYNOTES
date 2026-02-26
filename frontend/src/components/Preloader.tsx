@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { PenTool } from "lucide-react";
 import { GraphPaper } from "./CoreLandingPages/CompleteLandingPages/tsx/Sketchy";
+import { usePathname } from "next/navigation";
 
 const loadingTexts = [
     "Sharpening pencils...",
@@ -13,10 +14,13 @@ const loadingTexts = [
 ];
 
 export default function Preloader() {
-    const [isLoading, setIsLoading] = useState(true);
+    const pathname = usePathname();
+    const [isLoading, setIsLoading] = useState(pathname === "/");
     const [textIndex, setTextIndex] = useState(0);
 
     useEffect(() => {
+        if (!isLoading) return;
+
         // Change text every 800ms
         const textInterval = setInterval(() => {
             setTextIndex((prev) => (prev + 1) % loadingTexts.length);
