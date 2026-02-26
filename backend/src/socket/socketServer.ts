@@ -9,6 +9,8 @@ import type { ThreadRepository } from "../services/prisma/ThreadRepository";
 import type { AskRequest } from "../types/crag";
 import { GoogleGenAI, Modality, Type } from "@google/genai";
 
+const VOICE_IDLE_TIMEOUT_MS = 10 * 60 * 1000;
+
 const askSchema = z.object({
   question: z.string().min(1),
   subjectId: z.string().min(1),
@@ -89,6 +91,36 @@ export function createSocketServer(options: SocketServerOptions): Server {
     let liveSession: any = null;
     let liveReady = false;
     let liveSessionInfo: { subjectId: string; threadId: string } | null = null;
+    let voiceIdleTimer: NodeJS.Timeout | null = null;
+
+    const clearVoiceIdleTimer = () => {
+      if (voiceIdleTimer) {
+        clearTimeout(voiceIdleTimer);
+        voiceIdleTimer = null;
+      }
+    };
+
+    const closeVoiceSession = (reason: string) => {
+      console.log("[voice] closing session", { socketId: socket.id, reason });
+      clearVoiceIdleTimer();
+      if (liveSession) {
+        try { liveSession.close(); } catch { /* ignore */ }
+      }
+      liveSession = null;
+      liveReady = false;
+      liveSessionInfo = null;
+      socket.emit("voice:ended");
+    };
+
+    const bumpVoiceActivity = (source: string) => {
+      if (!liveSession || !liveReady) return;
+      clearVoiceIdleTimer();
+      voiceIdleTimer = setTimeout(() => {
+        console.log("[voice] idle timeout reached", { socketId: socket.id, source });
+        socket.emit("voice:status", { stage: "idle", detail: "Session expired due to inactivity" });
+        closeVoiceSession("idle-timeout");
+      }, VOICE_IDLE_TIMEOUT_MS);
+    };
 
     /* ---- Chat (text) handler ---- */
     socket.on("ask", async (payload) => {
@@ -188,6 +220,7 @@ export function createSocketServer(options: SocketServerOptions): Server {
               console.log("[voice] live session opened", socket.id);
             },
             onmessage: async (message: any) => {
+              bumpVoiceActivity("gemini:message");
               /* ---------- Handle tool calls (CRAG function calling) ---------- */
               if (message.toolCall) {
                 console.log("[voice] toolCall received", {
@@ -303,10 +336,12 @@ export function createSocketServer(options: SocketServerOptions): Server {
             },
             onerror: (e: any) => {
               console.error("[voice] live API error", e);
+              clearVoiceIdleTimer();
               socket.emit("voice:error", { error: e?.message ?? "Voice error" });
             },
             onclose: (e: any) => {
               console.log("[voice] live session closed", e?.reason ?? "no reason");
+              clearVoiceIdleTimer();
               liveReady = false;
             }
           }
@@ -316,6 +351,7 @@ export function createSocketServer(options: SocketServerOptions): Server {
         console.log("[voice] session ready with search_notes tool");
         socket.emit("voice:ready");
         socket.emit("voice:status", { stage: "listening", detail: "Listening" });
+        bumpVoiceActivity("voice:start");
 
         // Greeting — model will speak naturally
         if (liveSession) {
@@ -343,10 +379,12 @@ export function createSocketServer(options: SocketServerOptions): Server {
         console.log("[voice] audioStreamEnd", socket.id);
         liveSession.sendRealtimeInput({ audioStreamEnd: true });
         socket.emit("voice:status", { stage: "listening", detail: "Listening" });
+        bumpVoiceActivity("voice:audioStreamEnd");
         return;
       }
 
       if (!payload?.data) return;
+      bumpVoiceActivity("voice:audio");
       liveSession.sendRealtimeInput({
         audio: {
           data: payload.data,
@@ -358,18 +396,13 @@ export function createSocketServer(options: SocketServerOptions): Server {
     /* ---- Voice session stop ---- */
     socket.on("voice:stop", () => {
       console.log("[voice] stop session", socket.id);
-      if (liveSession) {
-        try { liveSession.close(); } catch { /* ignore */ }
-      }
-      liveSession = null;
-      liveReady = false;
-      liveSessionInfo = null;
-      socket.emit("voice:ended");
+      closeVoiceSession("voice:stop");
     });
 
     /* ---- Socket disconnect ---- */
     socket.on("disconnect", () => {
       console.log("[socket] disconnected", socket.id);
+      clearVoiceIdleTimer();
       if (liveSession) {
         try { liveSession.close(); } catch { /* ignore */ }
       }
