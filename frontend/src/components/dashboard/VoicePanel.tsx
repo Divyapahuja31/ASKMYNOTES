@@ -24,7 +24,7 @@ export function VoicePanel() {
     const [lastAiResponse, setLastAiResponse] = useState<string | null>(null);
     const mediaRecorderRef = useRef<MediaRecorder | null>(null);
     const audioChunksRef = useRef<Blob[]>([]);
-    const greetedRef = useRef(false);
+    const sessionStartedRef = useRef(false);
     const playbackQueueRef = useRef<Int16Array[]>([]);
     const isPlayingRef = useRef(false);
     const audioContextRef = useRef<AudioContext | null>(null);
@@ -60,6 +60,16 @@ export function VoicePanel() {
         }
 
         try {
+            if (!sessionStartedRef.current) {
+                const socket = getSocket();
+                const threadId = selectedSubject?.threadId ?? `thread-${Date.now()}`;
+                socket.emit("voice:start", {
+                    subjectId: selectedId,
+                    threadId,
+                    subjectName: selectedSubject?.name
+                });
+                sessionStartedRef.current = true;
+            }
             const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
             const mimeType = getSupportedMimeType();
             const recorder = new MediaRecorder(stream, mimeType ? { mimeType } : undefined);
@@ -86,8 +96,9 @@ export function VoicePanel() {
             recorder.onstop = async () => {
                 stream.getTracks().forEach((track) => track.stop());
                 audioChunksRef.current = [];
-                setVoiceStatus("processing");
-                getSocket().emit("voice:stop");
+                setVoiceStatus("idle");
+                // Send audioStreamEnd to flush buffered audio, but keep session alive
+                getSocket().emit("voice:audio", { audioStreamEnd: true });
             };
 
             recorder.start(250);
@@ -98,18 +109,6 @@ export function VoicePanel() {
             setVoiceStatus("idle");
         }
     };
-
-    useEffect(() => {
-        if (!selectedId || greetedRef.current) return;
-        greetedRef.current = true;
-        const socket = getSocket();
-        const threadId = selectedSubject?.threadId ?? `thread-${Date.now()}`;
-        socket.emit("voice:start", {
-            subjectId: selectedId,
-            threadId,
-            subjectName: selectedSubject?.name
-        });
-    }, [selectedId, selectedSubject]);
 
     useEffect(() => {
         const socket = getSocket();
@@ -124,6 +123,7 @@ export function VoicePanel() {
         };
 
         const handleAudio = (payload: { data: string; mimeType: string }) => {
+            setVoiceStatus("speaking");
             const bytes = Uint8Array.from(atob(payload.data), (c) => c.charCodeAt(0));
             const pcm = new Int16Array(bytes.buffer, bytes.byteOffset, bytes.byteLength / 2);
             playbackQueueRef.current.push(pcm);
@@ -136,16 +136,55 @@ export function VoicePanel() {
             setVoiceStatus("idle");
         };
 
+        const handleInterrupted = () => {
+            playbackQueueRef.current = [];
+            isPlayingRef.current = false;
+            setVoiceStatus("listening");
+        };
+
+        const handleOutputTranscript = (payload: { text: string }) => {
+            setLastAiResponse(payload.text);
+        };
+
+        const handleError = (payload: { error: string }) => {
+            console.error("[voice] error from server:", payload.error);
+            setVoiceStatus("idle");
+            setLastAiResponse(`Error: ${payload.error}`);
+        };
+
+        const handleSocketConnect = () => {
+            console.debug("[voice] socket connected");
+        };
+
+        const handleSocketError = (error: unknown) => {
+            console.error("[voice] socket error", error);
+            setVoiceStatus("idle");
+            setVoiceActive(false);
+        };
+
+        socket.on("connect", handleSocketConnect);
+        socket.on("connect_error", handleSocketError);
+        socket.on("error", handleSocketError);
+
         socket.on("voice:ready", handleReady);
         socket.on("voice:transcript", handleTranscript);
         socket.on("voice:audio", handleAudio);
         socket.on("voice:final", handleFinal);
+        socket.on("voice:interrupted", handleInterrupted);
+        socket.on("voice:output-transcript", handleOutputTranscript);
+        socket.on("voice:error", handleError);
 
         return () => {
+            socket.off("connect", handleSocketConnect);
+            socket.off("connect_error", handleSocketError);
+            socket.off("error", handleSocketError);
             socket.off("voice:ready", handleReady);
             socket.off("voice:transcript", handleTranscript);
             socket.off("voice:audio", handleAudio);
             socket.off("voice:final", handleFinal);
+            socket.off("voice:interrupted", handleInterrupted);
+            socket.off("voice:output-transcript", handleOutputTranscript);
+            socket.off("voice:error", handleError);
         };
     }, []);
 
