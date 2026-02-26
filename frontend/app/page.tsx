@@ -1,5 +1,14 @@
 "use client";
-import { SquiggleFilter, GraphPaper, Hero, TapeMarquee, FeatureBoard } from "@/src/components/CoreLandingPages/CompleteLandingPages/tsx/Sketchy";
+import {
+  SquiggleFilter,
+  GraphPaper,
+  Hero,
+  TapeMarquee,
+  FeatureBoard,
+  NotebookFeatureGrid,
+  HowItWorks,
+  BottomCTA,
+} from "@/src/components/CoreLandingPages/CompleteLandingPages/tsx/Sketchy";
 
 // --- Main Layout ---
 export default function SketchyPage() {
@@ -25,10 +34,16 @@ export default function SketchyPage() {
       <Hero />
       <TapeMarquee />
       <FeatureBoard />
+      <NotebookFeatureGrid />
+      <HowItWorks />
+      <BottomCTA />
 
-      <footer className="py-24 text-center">
-        <p className="text-2xl text-slate-500 opacity-60 rotate-2 italic">
-          Made with love and a lot of coffee.
+      <footer className="relative z-10 py-24 text-center border-t-2 border-dashed border-slate-200">
+        <p className="text-lg text-slate-400 italic">
+          Made with 📚 and a lot of ☕ for hackathon builders.
+        </p>
+        <p className="mt-2 text-xs font-mono text-slate-300 tracking-widest uppercase">
+          AskMyNotes © 2026
         </p>
       </footer>
     </main>
