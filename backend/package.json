@@ -12,7 +12,7 @@
     "email": "harsh@greenhacker.in"
   },
   "scripts": {
-    "build": "echo \"No build step required for Vercel serverless API\"",
+    "build": "prisma generate && tsup src/server.ts --format esm --target node20 --outDir dist --clean --sourcemap",
     "dev": "tsx src/server.ts",
     "start": "node dist/server.js",
     "typecheck": "tsc -p tsconfig.json --noEmit",
