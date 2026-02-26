@@ -12,12 +12,13 @@ function readEnv(name: string, fallback?: string): string {
 
 function readNumberEnv(name: string, fallback: number): number {
   const raw = process.env[name];
-  if (!raw) {
+  if (!raw || raw.trim() === "") {
     return fallback;
   }
-  const value = Number(raw);
+  const cleaned = raw.replace(/['"]/g, '').trim();
+  const value = Number(cleaned);
   if (Number.isNaN(value)) {
-    throw new Error(`Environment variable ${name} must be a number.`);
+    throw new Error(`Environment variable ${name} must be a number. Got: ${raw}`);
   }
   return value;
 }
