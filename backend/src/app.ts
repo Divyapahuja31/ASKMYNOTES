@@ -133,3 +133,6 @@ export function createApp(envInput?: AppEnv): AppBootstrap {
     }
   };
 }
+
+const { app } = createApp();
+export default app;
