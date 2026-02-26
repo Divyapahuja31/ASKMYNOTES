@@ -7,7 +7,7 @@ export interface UploadedFile {
     type: "pdf" | "txt";
     uploadedAt: Date;
     file?: File;
-    ingestionStatus?: "extracting" | "chunking" | "vectorizing" | "saving" | "done" | "error";
+    ingestionStatus?: "uploading" | "extracting" | "chunking" | "vectorizing" | "saving" | "done" | "error";
 }
 
 export interface Citation {

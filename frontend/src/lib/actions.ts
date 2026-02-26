@@ -273,6 +273,27 @@ export async function uploadFileAction(payload: UploadFilePayload): Promise<Acti
   }
 }
 
+export async function deleteFileAction(
+  subjectId: string,
+  fileName: string
+): Promise<ActionResult<{ success: boolean; fileName: string }>> {
+  try {
+    const response = await callBackend(`${BACKEND_ROUTES.subjectFiles(subjectId)}/${encodeURIComponent(fileName)}`, {
+      method: "DELETE"
+    });
+
+    if (!response.ok) {
+      const errorMsg = await response.text();
+      return { ok: false, status: response.status, error: errorMsg };
+    }
+
+    const data = (await response.json()) as { success: boolean; fileName: string };
+    return { ok: true, status: response.status, data };
+  } catch {
+    return { ok: false, status: 500, error: "Network error" };
+  }
+}
+
 export async function getSubjectFilesAction(
   subjectId: string
 ): Promise<ActionResult<{ subject: SubjectRecord; files: SubjectFileRecord[] }>> {

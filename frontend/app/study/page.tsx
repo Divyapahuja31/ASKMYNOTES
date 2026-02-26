@@ -1,10 +1,10 @@
 "use client";
 
-import React, { useCallback } from "react";
+import React, { useCallback, useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { LogOut, FileText, MessageSquare, Brain, BookOpen, Mic } from "lucide-react";
+import { LogOut, FileText, MessageSquare, Brain, BookOpen, Mic, AlertCircle, X } from "lucide-react";
 import { SquiggleFilter } from "@/src/components/CoreLandingPages/CompleteLandingPages/tsx/SquiggleFilter";
 import { GraphPaper } from "@/src/components/CoreLandingPages/CompleteLandingPages/tsx/GraphPaper";
 import { SketchButton } from "@/src/components/CoreLandingPages/CompleteLandingPages/tsx/SketchButton";
@@ -31,6 +31,7 @@ import {
   createSubjectAction,
   uploadFileAction,
   getSubjectFilesAction,
+  deleteFileAction,
   generateQuizAction,
   type AskResponsePayload
 } from "@/src/lib/actions";
@@ -170,6 +171,14 @@ const TABS: { key: DashboardTab; label: string; icon: React.ElementType }[] = [
 export default function DashboardPage() {
   const router = useRouter();
   const { user, isLoading } = useAuth();
+  const [toast, setToast] = useState<{ message: string; type: "error" | "success" } | null>(null);
+
+  useEffect(() => {
+    if (toast) {
+      const timer = setTimeout(() => setToast(null), 4000);
+      return () => clearTimeout(timer);
+    }
+  }, [toast]);
 
   // Global Store State
   const {
@@ -189,6 +198,7 @@ export default function DashboardPage() {
     addSubject,
     setSubjects,
     uploadFiles,
+    updateFileStatus,
     deleteFile,
     addChatMessage,
     updateChatMessage,
@@ -254,7 +264,7 @@ export default function DashboardPage() {
       }
     }
     fetchFiles();
-  }, [selectedId, subjects, setSubjects]);
+  }, [selectedId, setSubjects]);
 
   // Socket.io streaming for chat
   React.useEffect(() => {
@@ -351,38 +361,67 @@ export default function DashboardPage() {
   }, [subjects.length, addSubject, router]);
 
   const handleUploadFiles = useCallback(async (subjectId: string, droppingFiles: UploadedFile[]) => {
+    // 1. Immediately add files to store with progress status
+    const initialFiles = droppingFiles.map(f => ({
+      ...f,
+      ingestionStatus: "uploading" as const
+    }));
+    uploadFiles(subjectId, initialFiles);
+
     const currentSubject = subjects.find((s: Subject) => s.id === subjectId);
-    const uploaded: UploadedFile[] = [];
 
     for (const dropFile of droppingFiles) {
       if (!dropFile.file) continue;
+
+      // 10MB limit (10 * 1024 * 1024 bytes)
+      if (dropFile.file.size > 10 * 1024 * 1024) {
+        setToast({ message: "You can only upload till 10 mb.", type: "error" });
+        // Update status to error locally
+        updateFileStatus(subjectId, dropFile.name, "error");
+        continue;
+      }
+
       try {
         const res = await uploadFileAction({
           subjectId,
           subjectName: currentSubject?.name,
           file: dropFile.file
         });
+
         if (res.ok) {
-          uploaded.push(dropFile);
+          updateFileStatus(subjectId, dropFile.name, "done");
         } else {
           console.error("Failed to upload file:", dropFile.name, res.error);
-          alert(`Failed to upload ${dropFile.name}: ${res.error ?? "Unknown error"}`);
+          setToast({ message: `Failed to upload ${dropFile.name}: ${res.error ?? "Unknown error"}`, type: "error" });
+          updateFileStatus(subjectId, dropFile.name, "error");
         }
-
       } catch (err) {
         console.error("Failed to upload file:", dropFile.name, err);
-        alert(`Failed to upload ${dropFile.name}`);
+        setToast({ message: `Failed to upload ${dropFile.name}`, type: "error" });
+        updateFileStatus(subjectId, dropFile.name, "error");
       }
     }
+  }, [subjects, uploadFiles, updateFileStatus]);
 
-    if (uploaded.length > 0) {
-      uploadFiles(subjectId, uploaded);
-    }
-  }, [subjects, uploadFiles]);
+  const handleDeleteFile = useCallback(async (subjectId: string, fileId: string) => {
+    const subject = subjects.find(s => s.id === subjectId);
+    const file = subject?.files.find(f => f.id === fileId);
 
-  const handleDeleteFile = useCallback((subjectId: string, fileId: string) => {
+    if (!file) return;
+
+    // 1. Optimistically remove from frontend immediately
     deleteFile(subjectId, fileId);
-  }, [deleteFile]);
+
+    // 2. Attempt backend deletion in the background
+    try {
+      const res = await deleteFileAction(subjectId, file.name);
+      if (!res.ok) {
+        console.warn(`Backend delete failed for ${file.name}: ${res.error}. The file might still exist on the server.`);
+      }
+    } catch (err) {
+      console.error("Background delete failed", err);
+    }
+  }, [subjects, deleteFile]);
 
   const handleSendMessage = useCallback(async (subjectId: string, message: string) => {
     // Add user message
@@ -764,6 +803,34 @@ export default function DashboardPage() {
           )}
         </div>
       </div>
+
+      {/* Toast Notification */}
+      <AnimatePresence>
+        {toast && (
+          <motion.div
+            initial={{ opacity: 0, y: 50, scale: 0.9, x: "-50%" }}
+            animate={{ opacity: 1, y: 0, scale: 1, x: "-50%" }}
+            exit={{ opacity: 0, scale: 0.9, y: 20, x: "-50%" }}
+            className="fixed bottom-10 left-1/2 z-[100] min-w-[300px]"
+          >
+            <div className="bg-white border-4 border-slate-900 shadow-[8px_8px_0px_0px_rgba(15,23,42,1)] p-4 rounded-xl flex items-center gap-3" style={{ filter: "url(#squiggle)" }}>
+              <div className="w-10 h-10 rounded-full bg-red-100 border-2 border-red-500 flex items-center justify-center shrink-0">
+                <AlertCircle className="text-red-600" size={20} />
+              </div>
+              <p className="font-black text-slate-900 text-sm">
+                {toast.message}
+              </p>
+              <button
+                onClick={() => setToast(null)}
+                className="ml-auto hover:bg-slate-100 p-1 rounded-lg transition-colors"
+                aria-label="Close"
+              >
+                <X size={16} />
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Create Subject Modal */}
       <CreateSubjectModal
