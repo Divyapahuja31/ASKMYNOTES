@@ -143,6 +143,46 @@ export function VoicePanel() {
         playbackWorkletRef.current?.port.postMessage({ type: "data", pcm }, [pcm.buffer]);
     }, [ensurePlayback]);
 
+    const waitForVoiceReady = useCallback(async (): Promise<void> => {
+        const socket = getSocket();
+        if (!socket.connected) {
+            socket.connect();
+        }
+
+        await new Promise<void>((resolve, reject) => {
+            const timeout = window.setTimeout(() => {
+                cleanup();
+                reject(new Error("Voice session timed out while connecting to server."));
+            }, 10000);
+
+            const onReady = () => {
+                cleanup();
+                resolve();
+            };
+
+            const onVoiceError = (payload: { error?: string }) => {
+                cleanup();
+                reject(new Error(payload?.error ?? "Voice session failed to initialize."));
+            };
+
+            const onConnectError = (error: Error) => {
+                cleanup();
+                reject(new Error(error?.message || "Socket connection failed."));
+            };
+
+            const cleanup = () => {
+                window.clearTimeout(timeout);
+                socket.off("voice:ready", onReady);
+                socket.off("voice:error", onVoiceError);
+                socket.off("connect_error", onConnectError);
+            };
+
+            socket.on("voice:ready", onReady);
+            socket.on("voice:error", onVoiceError);
+            socket.on("connect_error", onConnectError);
+        });
+    }, []);
+
     /* ---- toggle voice on/off ---- */
     const toggleVoice = async () => {
         if (!selectedId) return;
@@ -162,11 +202,13 @@ export function VoicePanel() {
                 const threadId = getStoredThreadId(selectedId) ?? `thread-${Date.now()}`;
                 storeThreadId(selectedId, threadId);
 
+                setVoiceStatus("processing");
                 getSocket().emit("voice:start", {
                     subjectId: selectedId,
                     threadId,
                     subjectName: selectedSubject?.name
                 });
+                await waitForVoiceReady();
                 sessionStartedRef.current = true;
             }
 
@@ -176,6 +218,15 @@ export function VoicePanel() {
         } catch (error) {
             console.error("Voice capture failed:", error);
             setVoiceStatus("idle");
+            setVoiceStage(null);
+            setMessages((prev) => [
+                ...prev,
+                {
+                    id: `err-${Date.now()}`,
+                    role: "ai",
+                    text: error instanceof Error ? error.message : "Voice failed to start."
+                }
+            ]);
         }
     };
 
@@ -293,6 +344,8 @@ export function VoicePanel() {
             console.error("[voice] error from server:", payload.error);
             setVoiceStatus("idle");
             setVoiceStage(null);
+            setVoiceActive(false);
+            sessionStartedRef.current = false;
             setMessages((prev) => [
                 ...prev,
                 { id: `err-${Date.now()}`, role: "ai", text: `⚠️ ${payload.error}` }
@@ -304,6 +357,16 @@ export function VoicePanel() {
             setVoiceActive(false);
             sessionStartedRef.current = false;
         };
+
+        const handleConnectError = (error: Error) => {
+            console.error("[voice] socket connect error", error);
+            setVoiceStatus("idle");
+            setVoiceStage(null);
+            setVoiceActive(false);
+            sessionStartedRef.current = false;
+        };
+
+        socket.on("connect_error", handleConnectError);
 
         socket.on("voice:ready", handleReady);
         socket.on("voice:transcript", handleTranscript);
@@ -317,6 +380,7 @@ export function VoicePanel() {
         socket.on("voice:ended", handleEnded);
 
         return () => {
+            socket.off("connect_error", handleConnectError);
             socket.off("voice:ready", handleReady);
             socket.off("voice:transcript", handleTranscript);
             socket.off("voice:output-transcript", handleOutputTranscript);
@@ -328,7 +392,7 @@ export function VoicePanel() {
             socket.off("voice:error", handleError);
             socket.off("voice:ended", handleEnded);
         };
-    }, [isVoiceActive, isMuted, pushPlaybackPcm]);
+    }, [isVoiceActive, isMuted, pushPlaybackPcm, setVoiceActive, waitForVoiceReady]);
 
     if (!selectedId) return null;
 
