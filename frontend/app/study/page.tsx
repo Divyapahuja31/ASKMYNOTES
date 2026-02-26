@@ -313,11 +313,19 @@ export default function DashboardPage() {
             <span className="w-1 h-1 rounded-full bg-slate-400" />
             <span>{subjects.reduce((sum, s) => sum + s.files.length, 0)} files</span>
           </span>
-          <Link href="/">
+          <div onClick={async () => {
+            try {
+              await authClient.signOut();
+              window.location.href = "/";
+            } catch (err) {
+              console.error("Failed to sign out:", err);
+              window.location.href = "/";
+            }
+          }}>
             <SketchButton className="px-3 py-1.5 text-xs text-slate-700 bg-white">
               <LogOut size={14} /> Exit
             </SketchButton>
-          </Link>
+          </div>
         </div>
       </nav>
 
