@@ -1,3 +1,5 @@
+import type { MCQ, ShortAnswer } from "../components/dashboard/types";
+
 const DEFAULT_BACKEND_BASE_URL = "http://localhost:3001";
 
 export const BACKEND_ROUTES = {
@@ -6,6 +8,7 @@ export const BACKEND_ROUTES = {
   askStream: "/api/ask/stream",
   subjects: "/api/subjects",
   subjectFiles: (subjectId: string) => `/api/subjects/${subjectId}/files`,
+  generateQuiz: (subjectId: string) => `/api/subjects/${subjectId}/quiz`,
   voiceQuery: "/api/voice/query",
   authBase: "/api/auth"
 } as const;
@@ -37,6 +40,13 @@ export interface AskNotFoundResponse {
   confidence: "Low";
   evidence: [];
   found: false;
+}
+
+
+
+export interface StudyQuizPayload {
+  mcqs: MCQ[];
+  shortAnswers: ShortAnswer[];
 }
 
 export type AskResponsePayload = AskFoundResponse | AskNotFoundResponse;
@@ -270,6 +280,24 @@ export async function getSubjectFilesAction(
     }
 
     const data = (await response.json()) as { subject: SubjectRecord; files: SubjectFileRecord[] };
+    return { ok: true, status: response.status, data };
+  } catch {
+    return { ok: false, status: 500, error: "Network error" };
+  }
+}
+
+export async function generateQuizAction(subjectId: string): Promise<ActionResult<{ quiz: StudyQuizPayload }>> {
+  try {
+    const response = await callBackend(BACKEND_ROUTES.generateQuiz(subjectId), {
+      method: "POST"
+    });
+
+    if (!response.ok) {
+      const errorMsg = await response.text();
+      return { ok: false, status: response.status, error: errorMsg };
+    }
+
+    const data = (await response.json()) as { quiz: StudyQuizPayload };
     return { ok: true, status: response.status, data };
   } catch {
     return { ok: false, status: 500, error: "Network error" };

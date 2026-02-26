@@ -31,6 +31,7 @@ import {
   createSubjectAction,
   uploadFileAction,
   getSubjectFilesAction,
+  generateQuizAction,
   type AskResponsePayload
 } from "@/src/lib/actions";
 import { getSocket } from "@/src/lib/socket";
@@ -463,18 +464,26 @@ export default function DashboardPage() {
     }
   }, [subjects, addChatMessage, setIsChatLoading]);
 
-  const handleGenerateQuiz = useCallback((subjectId: string) => {
+  const handleGenerateQuiz = useCallback(async (subjectId: string) => {
     setIsQuizGenerating(true);
-    const subjectName = subjects.find((s: Subject) => s.id === subjectId)?.name ?? "this subject";
-
-    setTimeout(() => {
-      const quiz = generateMockQuiz(subjectName);
-      setStudyQuiz(subjectId, quiz);
+    try {
+      const res = await generateQuizAction(subjectId);
+      if (res.ok && res.data) {
+        setStudyQuiz(subjectId, {
+          ...res.data.quiz,
+          generatedAt: new Date()
+        });
+      } else {
+        alert(`Failed to generate quiz: ${res.error}`);
+      }
+    } catch (err) {
+      console.error("Quiz generation error:", err);
+      alert("An unexpected error occurred while generating the quiz.");
+    } finally {
       setIsQuizGenerating(false);
-    }, 2000 + Math.random() * 1000);
-  }, [subjects, setStudyQuiz, setIsQuizGenerating]);
+    }
+  }, [setStudyQuiz, setIsQuizGenerating]);
 
-  // ── Render ──
 
   return (
     <main className="relative h-screen w-full text-slate-800 overflow-hidden font-sans selection:bg-yellow-300 selection:text-black flex flex-col">

@@ -9,10 +9,12 @@ import type { AppEnv } from "./config/env";
 import { loadAppEnv } from "./config/env";
 import { AskController } from "./controllers/AskController";
 import { IngestionController } from "./controllers/IngestionController";
+import { QuizController } from "./controllers/QuizController";
 import { MeController } from "./controllers/MeController";
 import { SubjectController } from "./controllers/SubjectController";
 import { CragPipelineService } from "./services/crag/CragPipelineService";
 import { NotesIngestionService } from "./services/ingestion/NotesIngestionService";
+import { QuizGenerationService } from "./services/quiz/QuizGenerationService";
 import { GeminiLangChainClient } from "./services/llm/GeminiLangChainClient";
 import { LangGraphPostgresMemoryService } from "./services/memory/LangGraphPostgresMemoryService";
 import { PineconeClientFactory } from "./services/pinecone/PineconeClientFactory";
@@ -122,6 +124,14 @@ export function createApp(envInput?: AppEnv): AppBootstrap {
     })
   });
 
+  const quizController = new QuizController({
+    subjectRepository,
+    quizGenerationService: new QuizGenerationService({
+      subjectRepository,
+      llmClient
+    })
+  });
+
   const app = express();
 
   // ── Security middleware ──
@@ -170,6 +180,7 @@ export function createApp(envInput?: AppEnv): AppBootstrap {
         askController,
         subjectController,
         ingestionController,
+        quizController,
         meController
       },
       requireAuth
