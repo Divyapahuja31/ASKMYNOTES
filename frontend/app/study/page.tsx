@@ -7,7 +7,7 @@ import { AlertCircle, BookOpen, LogOut, MessageSquareQuote } from "lucide-react"
 import { GraphPaper } from "@/src/components/CoreLandingPages/CompleteLandingPages/tsx/GraphPaper";
 import { SketchButton } from "@/src/components/CoreLandingPages/CompleteLandingPages/tsx/SketchButton";
 import { SquiggleFilter } from "@/src/components/CoreLandingPages/CompleteLandingPages/tsx/SquiggleFilter";
-import { askNotesAction, type AskFoundResponse, type AskResponsePayload } from "@/src/lib/actions";
+import { askNotesAction, type AskResponsePayload } from "@/src/lib/actions";
 import { authClient } from "@/src/lib/auth-client";
 
 interface QueryForm {
@@ -24,9 +24,7 @@ function createThreadId(): string {
   return `thread-${Date.now()}`;
 }
 
-function isFoundResponse(value: AskResponsePayload): value is AskFoundResponse {
-  return typeof value === "object" && value !== null && "found" in value;
-}
+
 
 export default function StudyPage(): React.ReactElement {
   const router = useRouter();
@@ -223,11 +221,11 @@ export default function StudyPage(): React.ReactElement {
 
           {!answer ? <p className="text-slate-500">Submit a question to see grounded output.</p> : null}
 
-          {answer && !isFoundResponse(answer) ? (
-            <div className="rounded border-2 border-amber-300 bg-amber-50 px-3 py-3 text-sm font-semibold text-amber-800">{answer}</div>
+          {answer && !answer.found ? (
+            <div className="rounded border-2 border-amber-300 bg-amber-50 px-3 py-3 text-sm font-semibold text-amber-800">{answer.answer}</div>
           ) : null}
 
-          {answer && isFoundResponse(answer) ? (
+          {answer && answer.found ? (
             <div className="space-y-4">
               <div>
                 <div className="mb-1 text-xs uppercase tracking-widest text-slate-500">Answer</div>

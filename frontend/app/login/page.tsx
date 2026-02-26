@@ -301,6 +301,15 @@ export default function LoginPage(): React.ReactElement {
             </form>
 
             <div className="mt-8 text-center text-sm font-medium text-slate-600">
+              <Link
+                href="/forgot-password"
+                className="font-bold text-slate-500 hover:text-slate-700 decoration-wavy hover:underline underline-offset-4"
+              >
+                Forgot your password?
+              </Link>
+            </div>
+
+            <div className="mt-3 text-center text-sm font-medium text-slate-600">
               New here?{" "}
               <Link
                 href="/register"
