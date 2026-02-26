@@ -177,6 +177,8 @@ function generateMockQuiz(subjectName: string): StudyQuiz {
   };
 }
 
+import { useStudyStore } from "@/src/store/useStudyStore";
+
 // ── Tab Configuration ──
 
 const TABS: { key: DashboardTab; label: string; icon: React.ElementType }[] = [
@@ -188,14 +190,27 @@ const TABS: { key: DashboardTab; label: string; icon: React.ElementType }[] = [
 // ── Dashboard Page ──
 
 export default function DashboardPage() {
-  // State
-  const [subjects, setSubjects] = useState<Subject[]>([]);
-  const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<DashboardTab>("notes");
-  const [showCreateModal, setShowCreateModal] = useState(false);
-  const [isChatLoading, setIsChatLoading] = useState(false);
-  const [isQuizGenerating, setIsQuizGenerating] = useState(false);
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  // Global Store State
+  const {
+    subjects,
+    selectedId,
+    activeTab,
+    showCreateModal,
+    isChatLoading,
+    isQuizGenerating,
+    sidebarOpen,
+    setSelectedId,
+    setActiveTab,
+    setShowCreateModal,
+    setIsChatLoading,
+    setIsQuizGenerating,
+    setSidebarOpen,
+    addSubject,
+    uploadFiles,
+    deleteFile,
+    addChatMessage,
+    setStudyQuiz
+  } = useStudyStore();
 
   const selectedSubject = subjects.find((s) => s.id === selectedId) ?? null;
 
@@ -213,28 +228,16 @@ export default function DashboardPage() {
       studyQuiz: null,
       threadId: createThreadId(),
     };
-    setSubjects((prev) => [...prev, newSubject]);
-    setSelectedId(newSubject.id);
-    setActiveTab("notes");
-  }, [subjects.length]);
+    addSubject(newSubject);
+  }, [subjects.length, addSubject]);
 
   const handleUploadFiles = useCallback((subjectId: string, files: UploadedFile[]) => {
-    setSubjects((prev) =>
-      prev.map((s) =>
-        s.id === subjectId ? { ...s, files: [...s.files, ...files] } : s
-      )
-    );
-  }, []);
+    uploadFiles(subjectId, files);
+  }, [uploadFiles]);
 
   const handleDeleteFile = useCallback((subjectId: string, fileId: string) => {
-    setSubjects((prev) =>
-      prev.map((s) =>
-        s.id === subjectId
-          ? { ...s, files: s.files.filter((f) => f.id !== fileId) }
-          : s
-      )
-    );
-  }, []);
+    deleteFile(subjectId, fileId);
+  }, [deleteFile]);
 
   const handleSendMessage = useCallback((subjectId: string, message: string) => {
     // Add user message
@@ -245,13 +248,7 @@ export default function DashboardPage() {
       timestamp: new Date(),
     };
 
-    setSubjects((prev) =>
-      prev.map((s) =>
-        s.id === subjectId
-          ? { ...s, chatMessages: [...s.chatMessages, userMsg] }
-          : s
-      )
-    );
+    addChatMessage(subjectId, userMsg);
 
     // Simulate AI response
     setIsChatLoading(true);
@@ -259,16 +256,10 @@ export default function DashboardPage() {
 
     setTimeout(() => {
       const aiMsg = generateMockAnswer(message, subjectName);
-      setSubjects((prev) =>
-        prev.map((s) =>
-          s.id === subjectId
-            ? { ...s, chatMessages: [...s.chatMessages, aiMsg] }
-            : s
-        )
-      );
+      addChatMessage(subjectId, aiMsg);
       setIsChatLoading(false);
     }, 1200 + Math.random() * 800);
-  }, [subjects]);
+  }, [subjects, addChatMessage, setIsChatLoading]);
 
   const handleGenerateQuiz = useCallback((subjectId: string) => {
     setIsQuizGenerating(true);
@@ -276,14 +267,10 @@ export default function DashboardPage() {
 
     setTimeout(() => {
       const quiz = generateMockQuiz(subjectName);
-      setSubjects((prev) =>
-        prev.map((s) =>
-          s.id === subjectId ? { ...s, studyQuiz: quiz } : s
-        )
-      );
+      setStudyQuiz(subjectId, quiz);
       setIsQuizGenerating(false);
     }, 2000 + Math.random() * 1000);
-  }, [subjects]);
+  }, [subjects, setStudyQuiz, setIsQuizGenerating]);
 
   // ── Render ──
 

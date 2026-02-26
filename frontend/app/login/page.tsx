@@ -108,16 +108,22 @@ function SketchyInput({
   );
 }
 
+import { useLoginStore } from "@/src/store/useLoginStore";
+
 export default function LoginPage(): React.ReactElement {
   const router = useRouter();
-  const [formData, setFormData] = useState<LoginFormData>({
-    email: "",
-    password: ""
-  });
-  const [errors, setErrors] = useState<LoginFieldErrors>({});
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isGoogleSubmitting, setIsGoogleSubmitting] = useState(false);
-  const [serverError, setServerError] = useState<string>("");
+  const {
+    formData,
+    setFormData,
+    errors,
+    setErrors,
+    isSubmitting,
+    setIsSubmitting,
+    isGoogleSubmitting,
+    setIsGoogleSubmitting,
+    serverError,
+    setServerError
+  } = useLoginStore();
 
   const handleChange = (event: React.ChangeEvent<HTMLInputElement>): void => {
     const { name, value } = event.target;

@@ -110,19 +110,24 @@ function SketchyInput({
   );
 }
 
+import { useRegisterStore } from "@/src/store/useRegisterStore";
+
 export default function RegisterPage(): React.ReactElement {
   const router = useRouter();
-  const [formData, setFormData] = useState<RegisterFormData>({
-    name: "",
-    email: "",
-    password: "",
-    confirmPassword: ""
-  });
-  const [errors, setErrors] = useState<RegisterFieldErrors>({});
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isGoogleSubmitting, setIsGoogleSubmitting] = useState(false);
-  const [serverError, setServerError] = useState<string>("");
-  const [successMessage, setSuccessMessage] = useState<string>("");
+  const {
+    formData,
+    setFormData,
+    errors,
+    setErrors,
+    isSubmitting,
+    setIsSubmitting,
+    isGoogleSubmitting,
+    setIsGoogleSubmitting,
+    serverError,
+    setServerError,
+    successMessage,
+    setSuccessMessage
+  } = useRegisterStore();
 
   const handleChange = (event: React.ChangeEvent<HTMLInputElement>): void => {
     const { name, value } = event.target;

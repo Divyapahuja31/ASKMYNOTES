@@ -11,14 +11,24 @@ import { SketchButton } from "@/src/components/CoreLandingPages/CompleteLandingP
 import { SquiggleFilter } from "@/src/components/CoreLandingPages/CompleteLandingPages/tsx/SquiggleFilter";
 import { AskMyNotesLogo } from "@/src/components/AskMyNotesLogo";
 
+import { useResetPasswordStore } from "@/src/store/useResetPasswordStore";
+
 function ResetPasswordPageContent(): React.ReactElement {
     const router = useRouter();
     const searchParams = useSearchParams();
-    const [password, setPassword] = useState("");
-    const [confirmPassword, setConfirmPassword] = useState("");
-    const [isSubmitting, setIsSubmitting] = useState(false);
-    const [serverError, setServerError] = useState("");
-    const [successMessage, setSuccessMessage] = useState("");
+
+    const {
+        password,
+        setPassword,
+        confirmPassword,
+        setConfirmPassword,
+        isSubmitting,
+        setIsSubmitting,
+        serverError,
+        setServerError,
+        successMessage,
+        setSuccessMessage
+    } = useResetPasswordStore();
 
     const handleSubmit = async (event: React.FormEvent<HTMLFormElement>): Promise<void> => {
         event.preventDefault();

@@ -10,11 +10,19 @@ import { SketchButton } from "@/src/components/CoreLandingPages/CompleteLandingP
 import { SquiggleFilter } from "@/src/components/CoreLandingPages/CompleteLandingPages/tsx/SquiggleFilter";
 import { AskMyNotesLogo } from "@/src/components/AskMyNotesLogo";
 
+import { useForgotPasswordStore } from "@/src/store/useForgotPasswordStore";
+
 export default function ForgotPasswordPage(): React.ReactElement {
-    const [email, setEmail] = useState("");
-    const [isSubmitting, setIsSubmitting] = useState(false);
-    const [serverError, setServerError] = useState("");
-    const [successMessage, setSuccessMessage] = useState("");
+    const {
+        email,
+        setEmail,
+        isSubmitting,
+        setIsSubmitting,
+        serverError,
+        setServerError,
+        successMessage,
+        setSuccessMessage
+    } = useForgotPasswordStore();
 
     const handleSubmit = async (event: React.FormEvent<HTMLFormElement>): Promise<void> => {
         event.preventDefault();
