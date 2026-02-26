@@ -1,0 +1,10 @@
+{
+    "version": 2,
+    "buildCommand": "prisma generate && tsc -p tsconfig.json --noEmit",
+    "rewrites": [
+        {
+            "source": "/(.*)",
+            "destination": "/api"
+        }
+    ]
+}

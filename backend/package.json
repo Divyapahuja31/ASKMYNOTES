@@ -2,7 +2,6 @@
   "name": "askmynotes-backend",
   "version": "0.1.0",
   "private": true,
-  "type": "module",
   "description": "Controlled RAG backend for AskMyNotes",
   "author": {
     "name": "Team Horizon",
