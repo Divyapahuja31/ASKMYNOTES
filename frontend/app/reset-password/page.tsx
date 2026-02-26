@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { Suspense, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
@@ -11,7 +11,7 @@ import { SketchButton } from "@/src/components/CoreLandingPages/CompleteLandingP
 import { SquiggleFilter } from "@/src/components/CoreLandingPages/CompleteLandingPages/tsx/SquiggleFilter";
 import { AskMyNotesLogo } from "@/src/components/AskMyNotesLogo";
 
-export default function ResetPasswordPage(): React.ReactElement {
+function ResetPasswordPageContent(): React.ReactElement {
     const router = useRouter();
     const searchParams = useSearchParams();
     const [password, setPassword] = useState("");
@@ -191,5 +191,13 @@ export default function ResetPasswordPage(): React.ReactElement {
                 </div>
             </motion.div>
         </main>
+    );
+}
+
+export default function ResetPasswordPage(): React.ReactElement {
+    return (
+        <Suspense fallback={<main className="min-h-screen flex items-center justify-center">Loading...</main>}>
+            <ResetPasswordPageContent />
+        </Suspense>
     );
 }

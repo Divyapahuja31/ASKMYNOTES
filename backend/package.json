@@ -12,7 +12,7 @@
     "email": "harsh@greenhacker.in"
   },
   "scripts": {
-    "build": "prisma generate && tsup src/server.ts --format esm --target node20 --outDir dist --clean --sourcemap",
+    "build": "echo \"No build step required for Vercel serverless API\"",
     "dev": "tsx src/server.ts",
     "start": "node dist/server.js",
     "typecheck": "tsc -p tsconfig.json --noEmit",
@@ -20,8 +20,7 @@
     "better-auth:generate": "better-auth generate --config src/auth.ts --yes",
     "ingest:pdf:query": "tsx src/scripts/ingestAndQueryPdf.ts",
     "prisma:generate": "prisma generate",
-    "prisma:migrate": "prisma migrate dev",
-    "postinstall": "npx prisma migrate deploy && npx prisma generate"
+    "prisma:migrate": "prisma migrate dev"
   },
   "dependencies": {
     "@better-auth/cli": "^1.4.19",

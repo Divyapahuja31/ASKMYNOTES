@@ -8,7 +8,10 @@ import { buildCragConfig } from "./config/cragConfig";
 import type { AppEnv } from "./config/env";
 import { loadAppEnv } from "./config/env";
 import { AskController } from "./controllers/AskController";
+import { IngestionController } from "./controllers/IngestionController";
+import { SubjectController } from "./controllers/SubjectController";
 import { CragPipelineService } from "./services/crag/CragPipelineService";
+import { NotesIngestionService } from "./services/ingestion/NotesIngestionService";
 import { GeminiLangChainClient } from "./services/llm/GeminiLangChainClient";
 import { LangGraphPostgresMemoryService } from "./services/memory/LangGraphPostgresMemoryService";
 import { PineconeClientFactory } from "./services/pinecone/PineconeClientFactory";
@@ -19,7 +22,7 @@ import { PrismaClientProvider } from "./services/prisma/PrismaClientProvider";
 import { LangChainPineconeStoreFactory } from "./services/retrieval/LangChainPineconeStoreFactory";
 import { Reranker } from "./services/retrieval/Reranker";
 import { SubjectScopedRetriever } from "./services/retrieval/SubjectScopedRetriever";
-import { createAskRoutes } from "./routes/askRoutes";
+import { createApiRoutes } from "./routes/apiRoutes";
 import { createBetterAuth } from "./services/auth/auth";
 import { createRequireAuth } from "./services/auth/requireAuth";
 
@@ -85,6 +88,18 @@ export function createApp(envInput?: AppEnv): AppBootstrap {
     cragPipeline,
     subjectRepository
   });
+  const subjectController = new SubjectController({ subjectRepository });
+  const ingestionController = new IngestionController({
+    subjectRepository,
+    notesIngestionService: new NotesIngestionService({
+      prisma: prismaProvider.getClient(),
+      pinecone,
+      pineconeIndex: env.pineconeIndex,
+      googleApiKey: env.googleApiKey,
+      chunkSize: env.chunkSize,
+      chunkOverlap: env.chunkOverlap
+    })
+  });
 
   const app = express();
 
@@ -114,11 +129,42 @@ export function createApp(envInput?: AppEnv): AppBootstrap {
 
   // ── Routes ──
   app.all("/api/auth/{*any}", authLimiter, toNodeHandler(auth));
-  app.use(express.json({ limit: "1mb" }));
-  app.use("/api", askLimiter, createAskRoutes(askController, requireAuth));
+  app.use(express.json({ limit: "25mb" }));
+  app.use(
+    "/api",
+    askLimiter,
+    createApiRoutes(
+      {
+        askController,
+        subjectController,
+        ingestionController
+      },
+      requireAuth
+    )
+  );
 
-  app.get("/health", (_req: Request, res: Response) => {
-    res.status(200).json({ ok: true });
+  app.get(["/api", "/"], (_req: Request, res: Response) => {
+    res.status(200).json({
+      service: "askmynotes-backend",
+      routes: [
+        "GET /api/health",
+        "GET /api/subjects",
+        "POST /api/subjects",
+        "GET /api/subjects/:subjectId/files",
+        "POST /api/subjects/:subjectId/files",
+        "POST /api/ask",
+        "POST /api/ask/stream",
+        "ALL /api/auth/*"
+      ]
+    });
+  });
+
+  app.get(["/health", "/api/health"], (_req: Request, res: Response) => {
+    res.status(200).json({
+      status: "ok",
+      service: "askmynotes-backend",
+      timestamp: new Date().toISOString()
+    });
   });
 
   app.use((error: unknown, _req: Request, res: Response, _next: NextFunction) => {
