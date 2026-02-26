@@ -4,8 +4,7 @@ let socket: Socket | null = null;
 
 export function getSocket(): Socket {
   if (!socket) {
-    const isBrowser = typeof window !== "undefined";
-    const baseUrl = isBrowser ? "" : (process.env.NEXT_PUBLIC_BACKEND_URL ?? "http://localhost:3000");
+    const baseUrl = process.env.NEXT_PUBLIC_BACKEND_URL ?? "http://localhost:3001";
 
     socket = io(baseUrl, {
       withCredentials: true,

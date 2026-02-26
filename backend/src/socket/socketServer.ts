@@ -276,8 +276,15 @@ export function createSocketServer(options: SocketServerOptions): Server {
 
     socket.on("voice:audio", (payload) => {
       if (!liveSession || !liveReady) return;
+
+      // Handle audioStreamEnd (user stopped recording, flush buffered audio)
+      if (payload?.audioStreamEnd) {
+        console.log("[voice] audioStreamEnd", socket.id);
+        liveSession.sendRealtimeInput({ audioStreamEnd: true });
+        return;
+      }
+
       if (!payload?.data) return;
-      console.log("[voice] audio chunk", { socketId: socket.id, bytes: payload.data.length });
       liveSession.sendRealtimeInput({
         audio: {
           data: payload.data,

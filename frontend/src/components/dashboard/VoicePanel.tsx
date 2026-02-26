@@ -1,12 +1,32 @@
 "use client";
 
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Mic, MicOff, Volume2, Sparkles, User, GraduationCap } from "lucide-react";
 import { cn } from "@/src/lib/utils";
 import { useStudyStore } from "@/src/store/useStudyStore";
 import type { Subject } from "@/src/components/dashboard/types";
 import { getSocket } from "@/src/lib/socket";
+
+interface VoiceMessage {
+    id: string;
+    role: "user" | "ai";
+    text: string;
+}
+
+/* ---------- localStorage helpers for threadId ---------- */
+function getStoredThreadId(subjectId: string): string | null {
+    try {
+        return localStorage.getItem(`voice-thread-${subjectId}`);
+    } catch {
+        return null;
+    }
+}
+function storeThreadId(subjectId: string, threadId: string) {
+    try {
+        localStorage.setItem(`voice-thread-${subjectId}`, threadId);
+    } catch { /* ignore */ }
+}
 
 export function VoicePanel() {
     const {
@@ -20,88 +40,144 @@ export function VoicePanel() {
     } = useStudyStore();
 
     const selectedSubject = subjects.find((s: Subject) => s.id === selectedId);
-    const [transcript, setTranscript] = useState("");
-    const [lastAiResponse, setLastAiResponse] = useState<string | null>(null);
-    const mediaRecorderRef = useRef<MediaRecorder | null>(null);
-    const audioChunksRef = useRef<Blob[]>([]);
+    const [messages, setMessages] = useState<VoiceMessage[]>([]);
     const sessionStartedRef = useRef(false);
+    const messagesEndRef = useRef<HTMLDivElement | null>(null);
+
+    /* ---- audio capture refs ---- */
+    const captureCtxRef = useRef<AudioContext | null>(null);
+    const captureSourceRef = useRef<MediaStreamAudioSourceNode | null>(null);
+    const captureWorkletRef = useRef<AudioWorkletNode | null>(null);
+    const captureStreamRef = useRef<MediaStream | null>(null);
+
+    /* ---- audio playback refs ---- */
+    const playbackCtxRef = useRef<AudioContext | null>(null);
     const playbackQueueRef = useRef<Int16Array[]>([]);
     const isPlayingRef = useRef(false);
-    const audioContextRef = useRef<AudioContext | null>(null);
+    const nextPlayTimeRef = useRef(0);
 
-    const getSupportedMimeType = (): string => {
-        const candidates = [
-            "audio/webm;codecs=opus",
-            "audio/webm",
-            "audio/ogg;codecs=opus"
-        ];
-        for (const candidate of candidates) {
-            if (MediaRecorder.isTypeSupported(candidate)) {
-                return candidate;
+    /* ---- auto-scroll on new messages ---- */
+    useEffect(() => {
+        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    }, [messages]);
+
+    /* ---- helper: Int16 PCM → base64 ---- */
+    const int16ToBase64 = (int16: Int16Array): string => {
+        const bytes = new Uint8Array(int16.buffer, int16.byteOffset, int16.byteLength);
+        let binary = "";
+        for (let i = 0; i < bytes.length; i++) {
+            binary += String.fromCharCode(bytes[i]);
+        }
+        return btoa(binary);
+    };
+
+    /* ---- start/stop raw PCM capture via AudioWorklet ---- */
+    const startCapture = useCallback(async () => {
+        const stream = await navigator.mediaDevices.getUserMedia({
+            audio: { sampleRate: 16000, channelCount: 1, echoCancellation: true, noiseSuppression: true }
+        });
+        captureStreamRef.current = stream;
+
+        const ctx = new AudioContext({ sampleRate: 16000 });
+        captureCtxRef.current = ctx;
+
+        // Load the worklet processor (served from /public)
+        await ctx.audioWorklet.addModule("/pcm-capture-processor.js");
+
+        const source = ctx.createMediaStreamSource(stream);
+        captureSourceRef.current = source;
+
+        const workletNode = new AudioWorkletNode(ctx, "pcm-capture-processor");
+        captureWorkletRef.current = workletNode;
+
+        // Receive Int16 PCM chunks from the worklet thread
+        workletNode.port.onmessage = (e: MessageEvent<{ pcm: Int16Array }>) => {
+            const base64 = int16ToBase64(e.data.pcm);
+            getSocket().emit("voice:audio", {
+                data: base64,
+                mimeType: "audio/pcm;rate=16000"
+            });
+        };
+
+        source.connect(workletNode);
+        workletNode.connect(ctx.destination); // required to keep the worklet alive
+    }, []);
+
+    const stopCapture = useCallback(() => {
+        captureWorkletRef.current?.disconnect();
+        captureSourceRef.current?.disconnect();
+        captureStreamRef.current?.getTracks().forEach((t) => t.stop());
+        captureCtxRef.current?.close().catch(() => { });
+        captureWorkletRef.current = null;
+        captureSourceRef.current = null;
+        captureStreamRef.current = null;
+        captureCtxRef.current = null;
+    }, []);
+
+    /* ---- gapless audio playback ---- */
+    const playQueue = useCallback(async () => {
+        if (!playbackCtxRef.current) {
+            playbackCtxRef.current = new AudioContext({ sampleRate: 24000 });
+        }
+        const ctx = playbackCtxRef.current;
+        isPlayingRef.current = true;
+
+        while (playbackQueueRef.current.length > 0) {
+            const chunk = playbackQueueRef.current.shift();
+            if (!chunk || chunk.length === 0) continue;
+
+            const buffer = ctx.createBuffer(1, chunk.length, 24000);
+            const channel = buffer.getChannelData(0);
+            for (let i = 0; i < chunk.length; i++) {
+                channel[i] = chunk[i] / 32768;
             }
-        }
-        return "";
-    };
 
-    const stopRecording = () => {
-        const recorder = mediaRecorderRef.current;
-        if (recorder && recorder.state !== "inactive") {
-            recorder.stop();
-        }
-        setVoiceActive(false);
-    };
+            const source = ctx.createBufferSource();
+            source.buffer = buffer;
+            source.connect(ctx.destination);
 
+            // Schedule gaplessly
+            const now = ctx.currentTime;
+            const startAt = Math.max(now, nextPlayTimeRef.current);
+            source.start(startAt);
+            nextPlayTimeRef.current = startAt + buffer.duration;
+
+            // Wait for chunk to finish before processing next
+            await new Promise<void>((resolve) => {
+                source.onended = () => resolve();
+            });
+        }
+        isPlayingRef.current = false;
+    }, []);
+
+    /* ---- toggle voice on/off ---- */
     const toggleVoice = async () => {
         if (!selectedId) return;
+
         if (isVoiceActive) {
-            stopRecording();
-            setVoiceStatus("processing");
+            stopCapture();
+            setVoiceActive(false);
+            setVoiceStatus("idle");
+            // Flush any buffered audio on the server
+            getSocket().emit("voice:audio", { audioStreamEnd: true });
             return;
         }
 
         try {
+            // Start the Live API session if not started
             if (!sessionStartedRef.current) {
-                const socket = getSocket();
-                const threadId = selectedSubject?.threadId ?? `thread-${Date.now()}`;
-                socket.emit("voice:start", {
+                const threadId = getStoredThreadId(selectedId) ?? `thread-${Date.now()}`;
+                storeThreadId(selectedId, threadId);
+
+                getSocket().emit("voice:start", {
                     subjectId: selectedId,
                     threadId,
                     subjectName: selectedSubject?.name
                 });
                 sessionStartedRef.current = true;
             }
-            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-            const mimeType = getSupportedMimeType();
-            const recorder = new MediaRecorder(stream, mimeType ? { mimeType } : undefined);
-            mediaRecorderRef.current = recorder;
-            audioChunksRef.current = [];
-            setTranscript("");
-            setLastAiResponse(null);
 
-            recorder.ondataavailable = async (event) => {
-                if (event.data.size > 0) {
-                    audioChunksRef.current.push(event.data);
-                    try {
-                        const base64Pcm = await convertToPcm16(event.data, 16000);
-                        getSocket().emit("voice:audio", {
-                            data: base64Pcm,
-                            mimeType: "audio/pcm;rate=16000"
-                        });
-                    } catch (err) {
-                        console.warn("PCM chunk conversion failed", err);
-                    }
-                }
-            };
-
-            recorder.onstop = async () => {
-                stream.getTracks().forEach((track) => track.stop());
-                audioChunksRef.current = [];
-                setVoiceStatus("idle");
-                // Send audioStreamEnd to flush buffered audio, but keep session alive
-                getSocket().emit("voice:audio", { audioStreamEnd: true });
-            };
-
-            recorder.start(250);
+            await startCapture();
             setVoiceActive(true);
             setVoiceStatus("listening");
         } catch (error) {
@@ -110,141 +186,102 @@ export function VoicePanel() {
         }
     };
 
+    /* ---- socket event listeners ---- */
     useEffect(() => {
         const socket = getSocket();
 
         const handleReady = () => {
             setVoiceStatus("idle");
-            setLastAiResponse("Session ready. Ask your question.");
         };
 
         const handleTranscript = (payload: { text: string }) => {
-            setTranscript(payload.text);
+            if (!payload.text.trim()) return;
+            setMessages((prev) => {
+                // Merge into the latest user message if it exists and is partial
+                const last = prev[prev.length - 1];
+                if (last && last.role === "user") {
+                    return [...prev.slice(0, -1), { ...last, text: payload.text }];
+                }
+                return [...prev, { id: `user-${Date.now()}`, role: "user", text: payload.text }];
+            });
+        };
+
+        const handleOutputTranscript = (payload: { text: string }) => {
+            if (!payload.text.trim()) return;
+            setMessages((prev) => {
+                const last = prev[prev.length - 1];
+                if (last && last.role === "ai") {
+                    return [...prev.slice(0, -1), { ...last, text: last.text + payload.text }];
+                }
+                return [...prev, { id: `ai-${Date.now()}`, role: "ai", text: payload.text }];
+            });
         };
 
         const handleAudio = (payload: { data: string; mimeType: string }) => {
+            if (!payload.data) return;
             setVoiceStatus("speaking");
-            const bytes = Uint8Array.from(atob(payload.data), (c) => c.charCodeAt(0));
-            const pcm = new Int16Array(bytes.buffer, bytes.byteOffset, bytes.byteLength / 2);
-            playbackQueueRef.current.push(pcm);
-            if (!isPlayingRef.current) {
-                void playQueue();
+            try {
+                const bytes = Uint8Array.from(atob(payload.data), (c) => c.charCodeAt(0));
+                const pcm = new Int16Array(bytes.buffer, bytes.byteOffset, bytes.byteLength / 2);
+                playbackQueueRef.current.push(pcm);
+                if (!isPlayingRef.current) {
+                    void playQueue();
+                }
+            } catch (err) {
+                console.warn("[voice] playback decode error", err);
             }
         };
 
         const handleFinal = () => {
-            setVoiceStatus("idle");
+            setVoiceStatus(isVoiceActive ? "listening" : "idle");
         };
 
         const handleInterrupted = () => {
             playbackQueueRef.current = [];
+            nextPlayTimeRef.current = 0;
             isPlayingRef.current = false;
             setVoiceStatus("listening");
         };
 
-        const handleOutputTranscript = (payload: { text: string }) => {
-            setLastAiResponse(payload.text);
+        const handleAnswer = (payload: { text: string }) => {
+            if (!payload.text) return;
+            // CRAG text answer — add as an AI message if not already captured via output-transcript
+            setMessages((prev) => {
+                const last = prev[prev.length - 1];
+                if (last && last.role === "ai") return prev; // already have an AI message building
+                return [...prev, { id: `ai-${Date.now()}`, role: "ai", text: payload.text }];
+            });
         };
 
         const handleError = (payload: { error: string }) => {
             console.error("[voice] error from server:", payload.error);
             setVoiceStatus("idle");
-            setLastAiResponse(`Error: ${payload.error}`);
+            setMessages((prev) => [
+                ...prev,
+                { id: `err-${Date.now()}`, role: "ai", text: `⚠️ ${payload.error}` }
+            ]);
         };
-
-        const handleSocketConnect = () => {
-            console.debug("[voice] socket connected");
-        };
-
-        const handleSocketError = (error: unknown) => {
-            console.error("[voice] socket error", error);
-            setVoiceStatus("idle");
-            setVoiceActive(false);
-        };
-
-        socket.on("connect", handleSocketConnect);
-        socket.on("connect_error", handleSocketError);
-        socket.on("error", handleSocketError);
 
         socket.on("voice:ready", handleReady);
         socket.on("voice:transcript", handleTranscript);
+        socket.on("voice:output-transcript", handleOutputTranscript);
         socket.on("voice:audio", handleAudio);
         socket.on("voice:final", handleFinal);
         socket.on("voice:interrupted", handleInterrupted);
-        socket.on("voice:output-transcript", handleOutputTranscript);
+        socket.on("voice:answer", handleAnswer);
         socket.on("voice:error", handleError);
 
         return () => {
-            socket.off("connect", handleSocketConnect);
-            socket.off("connect_error", handleSocketError);
-            socket.off("error", handleSocketError);
             socket.off("voice:ready", handleReady);
             socket.off("voice:transcript", handleTranscript);
+            socket.off("voice:output-transcript", handleOutputTranscript);
             socket.off("voice:audio", handleAudio);
             socket.off("voice:final", handleFinal);
             socket.off("voice:interrupted", handleInterrupted);
-            socket.off("voice:output-transcript", handleOutputTranscript);
+            socket.off("voice:answer", handleAnswer);
             socket.off("voice:error", handleError);
         };
-    }, []);
-
-    const playQueue = async () => {
-        if (!audioContextRef.current) {
-            audioContextRef.current = new AudioContext({ sampleRate: 24000 });
-        }
-        const context = audioContextRef.current;
-        isPlayingRef.current = true;
-        while (playbackQueueRef.current.length > 0) {
-            const chunk = playbackQueueRef.current.shift();
-            if (!chunk) continue;
-            const buffer = context.createBuffer(1, chunk.length, 24000);
-            const channel = buffer.getChannelData(0);
-            for (let i = 0; i < chunk.length; i++) {
-                channel[i] = chunk[i] / 32768;
-            }
-            const source = context.createBufferSource();
-            source.buffer = buffer;
-            source.connect(context.destination);
-            source.start();
-            await new Promise((resolve) => {
-                source.onended = resolve;
-            });
-        }
-        isPlayingRef.current = false;
-    };
-
-    const convertToPcm16 = async (blob: Blob, targetSampleRate: number): Promise<string> => {
-        const arrayBuffer = await blob.arrayBuffer();
-        const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
-        const audioBuffer = await audioContext.decodeAudioData(arrayBuffer.slice(0));
-
-        const numChannels = 1;
-        const offlineContext = new OfflineAudioContext(numChannels, Math.ceil(audioBuffer.duration * targetSampleRate), targetSampleRate);
-        const source = offlineContext.createBufferSource();
-        source.buffer = audioBuffer;
-        source.connect(offlineContext.destination);
-        source.start(0);
-
-        const rendered = await offlineContext.startRendering();
-        const channelData = rendered.getChannelData(0);
-        const pcmBuffer = new ArrayBuffer(channelData.length * 2);
-        const view = new DataView(pcmBuffer);
-        let offset = 0;
-        for (let i = 0; i < channelData.length; i++) {
-            let sample = Math.max(-1, Math.min(1, channelData[i]));
-            sample = sample < 0 ? sample * 0x8000 : sample * 0x7fff;
-            view.setInt16(offset, sample, true);
-            offset += 2;
-        }
-
-        await audioContext.close();
-        const bytes = new Uint8Array(pcmBuffer);
-        let binary = "";
-        for (const byte of bytes) {
-            binary += String.fromCharCode(byte);
-        }
-        return btoa(binary);
-    };
+    }, [isVoiceActive, playQueue]);
 
     if (!selectedId) return null;
 
@@ -287,97 +324,95 @@ export function VoicePanel() {
                 </div>
             </div>
 
-            {/* Main Visualizer Area */}
-            <div className="flex-1 flex flex-col items-center justify-center p-8 relative">
-                <div className="relative mb-12">
-                    {/* Pulsing circles behind the mic */}
-                    <AnimatePresence>
-                        {isVoiceActive && (
-                            <>
-                                <motion.div
-                                    initial={{ scale: 0.8, opacity: 0 }}
-                                    animate={{ scale: [1, 2], opacity: [0.5, 0] }}
-                                    transition={{ duration: 2, repeat: Infinity, ease: "easeOut" }}
-                                    className="absolute inset-0 rounded-full bg-indigo-200 -z-10"
-                                />
-                                <motion.div
-                                    initial={{ scale: 0.8, opacity: 0 }}
-                                    animate={{ scale: [1, 1.6], opacity: [0.3, 0] }}
-                                    transition={{ duration: 2, repeat: Infinity, ease: "easeOut", delay: 0.5 }}
-                                    className="absolute inset-0 rounded-full bg-indigo-100 -z-10"
-                                />
-                            </>
-                        )}
-                    </AnimatePresence>
-
-                    <button
-                        onClick={toggleVoice}
-                        className={cn(
-                            "w-32 h-32 rounded-full border-4 border-slate-900 flex items-center justify-center transition-all shadow-[6px_6px_0px_0px_rgba(15,23,42,1)] active:translate-x-1 active:translate-y-1 active:shadow-none",
-                            isVoiceActive ? "bg-red-400 text-white translate-x-1 translate-y-1 shadow-none" : "bg-white text-slate-900 hover:bg-slate-50"
-                        )}
-                        style={{ filter: "url(#squiggle)" }}
-                    >
-                        {isVoiceActive ? <MicOff size={48} /> : <Mic size={48} />}
-                    </button>
-
-                    {!isVoiceActive && (
-                        <motion.div
-                            initial={{ opacity: 0, y: 10 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            className="absolute -bottom-16 left-1/2 -translate-x-1/2 whitespace-nowrap text-slate-400 font-bold text-xs uppercase tracking-widest"
-                        >
-                            Tap to start session
-                        </motion.div>
+            {/* Conversation + Mic Area */}
+            <div className="flex-1 flex flex-col p-6 overflow-hidden">
+                {/* Scrollable conversation history */}
+                <div className="flex-1 overflow-y-auto space-y-4 mb-6 pr-2">
+                    {messages.length === 0 && (
+                        <div className="flex flex-col items-center justify-center h-full text-slate-400">
+                            <Mic size={48} className="mb-4 opacity-30" />
+                            <p className="font-bold text-sm uppercase tracking-widest">
+                                Tap the mic to start talking
+                            </p>
+                        </div>
                     )}
+
+                    <AnimatePresence initial={false}>
+                        {messages.map((msg) => (
+                            <motion.div
+                                key={msg.id}
+                                initial={{ opacity: 0, y: 12 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                className={cn(
+                                    "flex items-start gap-3",
+                                    msg.role === "ai" && "flex-row-reverse"
+                                )}
+                            >
+                                <div className={cn(
+                                    "w-8 h-8 rounded-full border-2 border-slate-900 flex items-center justify-center flex-shrink-0 mt-0.5 shadow-[2px_2px_0px_0px_rgba(15,23,42,1)]",
+                                    msg.role === "user" ? "bg-white" : "bg-yellow-300"
+                                )}>
+                                    {msg.role === "user"
+                                        ? <User size={16} className="text-slate-600" />
+                                        : <GraduationCap size={16} className="text-slate-900" />}
+                                </div>
+
+                                <div className={cn(
+                                    "border-2 border-slate-900 p-3 rounded-2xl shadow-[3px_3px_0px_0px_rgba(15,23,42,1)] max-w-[75%]",
+                                    msg.role === "user"
+                                        ? "bg-white rounded-tl-none"
+                                        : "bg-indigo-50 rounded-tr-none"
+                                )}>
+                                    <p className={cn(
+                                        "text-sm leading-relaxed",
+                                        msg.role === "user" ? "italic text-slate-700" : "text-slate-900 font-medium"
+                                    )}>
+                                        {msg.role === "user" ? `"${msg.text}"` : msg.text}
+                                    </p>
+                                </div>
+                            </motion.div>
+                        ))}
+                    </AnimatePresence>
+                    <div ref={messagesEndRef} />
                 </div>
 
-                {/* Dynamic Conversation Display */}
-                <div className="w-full max-w-2xl mt-12 space-y-6">
-                    <AnimatePresence mode="wait">
-                        {transcript && (
-                            <motion.div
-                                key="transcript"
-                                initial={{ opacity: 0, y: 20 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                exit={{ opacity: 0, scale: 0.95 }}
-                                className="flex items-start gap-4"
-                            >
-                                <div className="w-10 h-10 rounded-full border-2 border-slate-900 bg-white flex items-center justify-center flex-shrink-0 mt-1 shadow-[2px_2px_0px_0px_rgba(15,23,42,1)]">
-                                    <User size={20} className="text-slate-600" />
-                                </div>
-                                <div className="bg-white border-2 border-slate-900 p-4 rounded-2xl rounded-tl-none shadow-[4px_4px_0px_0px_rgba(15,23,42,1)]" style={{ filter: "url(#squiggle)" }}>
-                                    <p className="italic text-slate-700 font-medium">"{transcript}"</p>
-                                </div>
-                            </motion.div>
-                        )}
+                {/* Mic button */}
+                <div className="flex justify-center">
+                    <div className="relative">
+                        <AnimatePresence>
+                            {isVoiceActive && (
+                                <>
+                                    <motion.div
+                                        initial={{ scale: 0.8, opacity: 0 }}
+                                        animate={{ scale: [1, 2], opacity: [0.5, 0] }}
+                                        transition={{ duration: 2, repeat: Infinity, ease: "easeOut" }}
+                                        className="absolute inset-0 rounded-full bg-indigo-200 -z-10"
+                                    />
+                                    <motion.div
+                                        initial={{ scale: 0.8, opacity: 0 }}
+                                        animate={{ scale: [1, 1.6], opacity: [0.3, 0] }}
+                                        transition={{ duration: 2, repeat: Infinity, ease: "easeOut", delay: 0.5 }}
+                                        className="absolute inset-0 rounded-full bg-indigo-100 -z-10"
+                                    />
+                                </>
+                            )}
+                        </AnimatePresence>
 
-                        {lastAiResponse && voiceStatus === "speaking" && (
-                            <motion.div
-                                key="response"
-                                initial={{ opacity: 0, y: 20 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                className="flex items-start gap-4 flex-row-reverse"
-                            >
-                                <div className="w-10 h-10 rounded-full border-2 border-slate-900 bg-yellow-300 flex items-center justify-center flex-shrink-0 mt-1 shadow-[2px_2px_0px_0px_rgba(15,23,42,1)]">
-                                    <GraduationCap size={20} className="text-slate-900" />
-                                </div>
-                                <div className="bg-indigo-50 border-2 border-slate-900 p-4 rounded-2xl rounded-tr-none shadow-[4px_4px_0px_0px_rgba(15,23,42,1)] max-w-md" style={{ filter: "url(#squiggle)" }}>
-                                    <div className="flex gap-1 mb-2">
-                                        <motion.div animate={{ height: [4, 12, 4] }} transition={{ duration: 0.5, repeat: Infinity }} className="w-1 bg-indigo-500 rounded-full" />
-                                        <motion.div animate={{ height: [8, 4, 8] }} transition={{ duration: 0.6, repeat: Infinity }} className="w-1 bg-indigo-500 rounded-full" />
-                                        <motion.div animate={{ height: [6, 10, 6] }} transition={{ duration: 0.4, repeat: Infinity }} className="w-1 bg-indigo-500 rounded-full" />
-                                    </div>
-                                    <p className="text-slate-900 font-bold text-lg leading-snug">{lastAiResponse}</p>
-                                </div>
-                            </motion.div>
-                        )}
-                    </AnimatePresence>
+                        <button
+                            onClick={toggleVoice}
+                            className={cn(
+                                "w-20 h-20 rounded-full border-4 border-slate-900 flex items-center justify-center transition-all shadow-[4px_4px_0px_0px_rgba(15,23,42,1)] active:translate-x-1 active:translate-y-1 active:shadow-none",
+                                isVoiceActive ? "bg-red-400 text-white translate-x-1 translate-y-1 shadow-none" : "bg-white text-slate-900 hover:bg-slate-50"
+                            )}
+                        >
+                            {isVoiceActive ? <MicOff size={32} /> : <Mic size={32} />}
+                        </button>
+                    </div>
                 </div>
             </div>
 
             {/* Footer Info */}
-            <div className="p-6 text-center text-slate-400 font-mono text-[10px] uppercase tracking-[0.2em]">
+            <div className="p-4 text-center text-slate-400 font-mono text-[10px] uppercase tracking-[0.2em]">
                 AskMyNotes • Teacher Mode • Phase 1
             </div>
         </div>

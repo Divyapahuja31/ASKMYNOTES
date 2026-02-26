@@ -93,11 +93,46 @@ Return the output strictly in the following JSON format without Markdown formatt
         try {
             // Remove any potential markdown wrappers that the LLM might stubbornly include
             const cleanJsonStr = responseText.replace(/^```json\s*/i, '').replace(/\s*```$/i, '').trim();
-            const parsed = JSON.parse(cleanJsonStr);
+            const extractedJson = extractFirstJsonObject(cleanJsonStr);
+            const parsed = JSON.parse(extractedJson);
             return quizResponseSchema.parse(parsed);
         } catch (err) {
             console.error("Failed to parse or validate LLM quiz response:", responseText, err);
             throw new Error("Failed to generate a valid quiz. Please try again.");
         }
     }
+}
+
+function extractFirstJsonObject(input: string): string {
+    const start = input.indexOf("{");
+    if (start === -1) {
+        throw new Error("No JSON object found in response.");
+    }
+
+    let depth = 0;
+    let inString = false;
+    let escape = false;
+    for (let i = start; i < input.length; i += 1) {
+        const ch = input[i];
+        if (escape) {
+            escape = false;
+            continue;
+        }
+        if (ch === "\\") {
+            escape = true;
+            continue;
+        }
+        if (ch === "\"") {
+            inString = !inString;
+            continue;
+        }
+        if (inString) continue;
+        if (ch === "{") depth += 1;
+        if (ch === "}") depth -= 1;
+        if (depth === 0) {
+            return input.slice(start, i + 1).trim();
+        }
+    }
+
+    throw new Error("Unterminated JSON object in response.");
 }
