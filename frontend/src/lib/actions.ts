@@ -7,7 +7,6 @@ export const BACKEND_ROUTES = {
   subjects: "/api/subjects",
   subjectFiles: (subjectId: string) => `/api/subjects/${subjectId}/files`,
   voiceQuery: "/api/voice/query",
-  me: "/api/me",
   authBase: "/api/auth"
 } as const;
 
@@ -337,23 +336,6 @@ export async function voiceQueryAction(
   }
 }
 
-export async function getMeAction(): Promise<ActionResult<MeProfile>> {
-  try {
-    const response = await callBackend(BACKEND_ROUTES.me, {
-      method: "GET"
-    });
-
-    if (!response.ok) {
-      const errorMsg = await response.text();
-      return { ok: false, status: response.status, error: errorMsg };
-    }
-
-    const data = (await response.json()) as MeProfile;
-    return { ok: true, status: response.status, data };
-  } catch {
-    return { ok: false, status: 500, error: "Network error" };
-  }
-}
 
 function fileToBase64(file: File): Promise<string> {
   return new Promise((resolve, reject) => {

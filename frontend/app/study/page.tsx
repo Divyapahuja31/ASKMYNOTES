@@ -31,7 +31,6 @@ import {
   createSubjectAction,
   uploadFileAction,
   getSubjectFilesAction,
-  getMeAction,
   type AskResponsePayload
 } from "@/src/lib/actions";
 import { getSocket } from "@/src/lib/socket";
@@ -197,8 +196,8 @@ export default function DashboardPage() {
   // ── Initialization ──
   React.useEffect(() => {
     async function checkSession() {
-      const res = await getMeAction();
-      if (!res.ok) {
+      const { data, error } = await authClient.getSession();
+      if (error || !data || !data.user) {
         router.push("/login");
       }
     }
@@ -245,7 +244,8 @@ export default function DashboardPage() {
             name: f.fileName,
             size: 0,
             type: (isPdf ? "pdf" : "txt") as "pdf" | "txt",
-            uploadedAt: f.lastIngestedAt ? new Date(f.lastIngestedAt) : new Date()
+            uploadedAt: f.lastIngestedAt ? new Date(f.lastIngestedAt) : new Date(),
+            ingestionStatus: "done"
           };
         });
         setSubjects((prev: Subject[]) =>
@@ -305,14 +305,21 @@ export default function DashboardPage() {
       setIsChatLoading(false);
     };
 
+    const handleIngestionProgress = (payload: { subjectId: string; fileName: string; step: UploadedFile["ingestionStatus"] }) => {
+      const { updateFileStatus } = useStudyStore.getState();
+      updateFileStatus(payload.subjectId, payload.fileName, payload.step);
+    };
+
     socket.on("ask:chunk", handleChunk);
     socket.on("ask:final", handleFinal);
     socket.on("ask:error", handleError);
+    socket.on("ingestion:progress", handleIngestionProgress);
 
     return () => {
       socket.off("ask:chunk", handleChunk);
       socket.off("ask:final", handleFinal);
       socket.off("ask:error", handleError);
+      socket.off("ingestion:progress", handleIngestionProgress);
     };
   }, [updateChatMessage, setIsChatLoading]);
 

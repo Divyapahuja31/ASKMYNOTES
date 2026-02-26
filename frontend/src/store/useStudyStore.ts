@@ -22,6 +22,7 @@ interface StudyState {
     addSubject: (subject: Subject) => void;
     uploadFiles: (subjectId: string, files: UploadedFile[]) => void;
     deleteFile: (subjectId: string, fileId: string) => void;
+    updateFileStatus: (subjectId: string, fileName: string, status: UploadedFile["ingestionStatus"]) => void;
     addChatMessage: (subjectId: string, message: ChatMessage) => void;
     updateChatMessage: (subjectId: string, messageId: string, patch: Partial<ChatMessage>) => void;
     setStudyQuiz: (subjectId: string, quiz: StudyQuiz) => void;
@@ -72,6 +73,20 @@ export const useStudyStore = create<StudyState>((set) => ({
         set((state) => ({
             subjects: state.subjects.map((s) =>
                 s.id === subjectId ? { ...s, files: s.files.filter((f) => f.id !== fileId) } : s
+            ),
+        })),
+
+    updateFileStatus: (subjectId, fileName, status) =>
+        set((state) => ({
+            subjects: state.subjects.map((s) =>
+                s.id === subjectId
+                    ? {
+                        ...s,
+                        files: s.files.map((f) =>
+                            f.name === fileName ? { ...f, ingestionStatus: status } : f
+                        ),
+                    }
+                    : s
             ),
         })),
 

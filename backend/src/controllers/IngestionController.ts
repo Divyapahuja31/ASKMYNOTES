@@ -1,4 +1,5 @@
 import type { NextFunction, Request, Response } from "express";
+import type { Server as SocketIOServer } from "socket.io";
 import { z } from "zod";
 import type { NotesIngestionService } from "../services/ingestion/NotesIngestionService";
 import type { SubjectRepository } from "../services/prisma/SubjectRepository";
@@ -68,13 +69,24 @@ export class IngestionController {
         return;
       }
 
+      const io: SocketIOServer | undefined = req.app.locals.io;
+
       const ingestion = await this.notesIngestionService.ingestFile({
         subjectId,
         subjectName,
         userId,
         fileName: parsedBody.data.fileName,
         mimeType: parsedBody.data.mimeType,
-        content: fileBuffer
+        content: fileBuffer,
+        onProgress: (step) => {
+          if (io) {
+            io.emit("ingestion:progress", {
+              subjectId,
+              fileName: parsedBody.data.fileName,
+              step
+            });
+          }
+        }
       });
 
       res.status(201).json({ ingestion });

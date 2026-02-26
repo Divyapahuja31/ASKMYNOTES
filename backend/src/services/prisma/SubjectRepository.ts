@@ -88,4 +88,23 @@ export class SubjectRepository {
       lastIngestedAt: group._max.createdAt ?? null
     }));
   }
+
+  async getRandomChunks(subjectId: string, limit: number): Promise<{ text: string; fileName: string; page: number; chunkId: string }[]> {
+    const chunks = await this.prisma.$queryRaw<
+      Array<{ text: string; fileName: string; page: number; chunkId: string }>
+    >`
+      SELECT "text", "fileName", "page", "chunkId"
+      FROM "NoteChunk"
+      WHERE "subjectId" = ${subjectId}
+      ORDER BY RANDOM()
+      LIMIT ${limit}
+    `;
+
+    return chunks.map(c => ({
+      text: c.text,
+      fileName: c.fileName,
+      page: c.page,
+      chunkId: c.chunkId
+    }));
+  }
 }

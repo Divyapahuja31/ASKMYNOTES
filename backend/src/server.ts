@@ -8,12 +8,14 @@ const port = env.port;
 
 const { app, services } = createApp(env);
 const httpServer = createServer(app);
-createSocketServer({
+const io = createSocketServer({
   httpServer,
   auth: services.auth,
   cragPipeline: services.cragPipeline,
   subjectRepository: services.subjectRepository
 });
+
+app.locals.io = io;
 
 httpServer.listen(port, () => {
   // eslint-disable-next-line no-console

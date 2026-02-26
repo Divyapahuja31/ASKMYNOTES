@@ -33,6 +33,7 @@ export interface IngestFileInput {
   fileName: string;
   mimeType?: string;
   content: Buffer;
+  onProgress?: (step: "extracting" | "chunking" | "vectorizing" | "saving" | "done") => void;
 }
 
 export interface IngestFileResult {
@@ -69,8 +70,10 @@ export class NotesIngestionService {
   }
 
   async ingestFile(input: IngestFileInput): Promise<IngestFileResult> {
+    input.onProgress?.("extracting");
     const pages = await this.extractPages(input.fileName, input.mimeType, input.content);
 
+    input.onProgress?.("chunking");
     const chunks = this.createChunks({
       subjectId: input.subjectId,
       fileName: input.fileName,
@@ -81,6 +84,7 @@ export class NotesIngestionService {
       throw new Error("No extractable text found in file.");
     }
 
+    input.onProgress?.("saving");
     await this.prisma.subject.upsert({
       where: { id: input.subjectId },
       update: { name: input.subjectName, userId: input.userId },
@@ -91,9 +95,11 @@ export class NotesIngestionService {
       }
     });
 
+    input.onProgress?.("vectorizing");
     const vectors = await this.embeddings.embedDocuments(chunks.map((chunk) => chunk.text));
     const namespaceIndex = this.pinecone.index(this.pineconeIndex).namespace(input.subjectId);
 
+    input.onProgress?.("saving");
     await namespaceIndex.upsert(
       chunks.map((chunk, idx) => ({
         id: chunk.pineconeId,
@@ -140,6 +146,7 @@ export class NotesIngestionService {
       });
     }
 
+    input.onProgress?.("done");
     return {
       subjectId: input.subjectId,
       subjectName: input.subjectName,
