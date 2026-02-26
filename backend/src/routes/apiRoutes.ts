@@ -15,14 +15,20 @@ export interface ApiControllers {
 
 export function createApiRoutes(
   controllers: ApiControllers,
-  requireAuth: RequestHandler
+  requireAuth: RequestHandler,
+  uploadLimiter?: RequestHandler
 ): Router {
   const router = Router();
 
   router.get("/subjects", requireAuth, controllers.subjectController.list);
   router.post("/subjects", requireAuth, controllers.subjectController.create);
   router.get("/subjects/:subjectId/files", requireAuth, controllers.subjectController.listFiles);
-  router.post("/subjects/:subjectId/files", requireAuth, controllers.ingestionController.uploadFile);
+  router.post(
+    "/subjects/:subjectId/files",
+    requireAuth,
+    uploadLimiter ?? ((req, _res, next) => next()),
+    controllers.ingestionController.uploadFile
+  );
   router.post("/subjects/:subjectId/quiz", requireAuth, controllers.quizController.generateQuiz);
 
   router.get("/me", requireAuth, controllers.meController.me);

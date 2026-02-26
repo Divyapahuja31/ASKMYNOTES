@@ -158,6 +158,13 @@ export function createApp(envInput?: AppEnv): AppBootstrap {
     legacyHeaders: false,
     message: { error: "Too many requests, please slow down." }
   });
+  const uploadLimiter = rateLimit({
+    windowMs: 1 * 60 * 1000, // 1 minute
+    limit: 60,
+    standardHeaders: "draft-8",
+    legacyHeaders: false,
+    message: { error: "Too many uploads, please slow down." }
+  });
 
   // ── Routes ──
   app.all("/api/auth/{*any}", authLimiter, toNodeHandler(auth));
@@ -183,7 +190,8 @@ export function createApp(envInput?: AppEnv): AppBootstrap {
         quizController,
         meController
       },
-      requireAuth
+      requireAuth,
+      uploadLimiter
     )
   );
 

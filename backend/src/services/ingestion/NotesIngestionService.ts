@@ -97,6 +97,15 @@ export class NotesIngestionService {
 
     input.onProgress?.("vectorizing");
     const vectors = await this.embeddings.embedDocuments(chunks.map((chunk) => chunk.text));
+    const expectedDim = vectors[0]?.length ?? 0;
+    if (expectedDim === 0) {
+      throw new Error("Embedding generation failed (empty vectors). Check GOOGLE_API_KEY and embedding model access.");
+    }
+    for (const vec of vectors) {
+      if (vec.length !== expectedDim) {
+        throw new Error(`Embedding dimension mismatch: expected ${expectedDim}, got ${vec.length}.`);
+      }
+    }
     const namespaceIndex = this.pinecone.index(this.pineconeIndex).namespace(input.subjectId);
 
     input.onProgress?.("saving");
