@@ -85,10 +85,11 @@ export function NotesPanel({ subject, onUploadFiles, onDeleteFile }: NotesPanelP
                 </div>
             </div>
 
-            {/* Drop zone */}
-            <div className="relative mb-8 group">
-                {/* Background Shadow */}
-                <div className="absolute inset-0 bg-slate-900 rounded-xl translate-x-2 translate-y-2 blur-[2px] opacity-10" />
+            <div className="max-w-4xl mx-auto w-full flex-1 flex flex-col min-h-0">
+                {/* Drop zone */}
+                <div className="relative mb-8 group shrink-0">
+                    {/* Background Shadow */}
+                    <div className="absolute inset-0 bg-slate-900 rounded-xl translate-x-2 translate-y-2 blur-[2px] opacity-10" />
 
                 <div
                     onDrop={handleDrop}
@@ -228,6 +229,7 @@ export function NotesPanel({ subject, onUploadFiles, onDeleteFile }: NotesPanelP
                         </div>
                     )}
                 </AnimatePresence>
+            </div>
             </div>
         </div>
     );
