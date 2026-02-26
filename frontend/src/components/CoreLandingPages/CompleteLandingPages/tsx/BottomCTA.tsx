@@ -28,7 +28,7 @@ export function BottomCTA() {
                         <p className="text-slate-500 mb-6 max-w-md mx-auto">
                             Stop drowning in notes. Let AskMyNotes find the answers for you — with proof.
                         </p>
-                        <Link href="/register">
+                        <Link href="/study">
                             <SketchButton className="mx-auto">
                                 Start Studying Smarter <ArrowRight size={18} />
                             </SketchButton>

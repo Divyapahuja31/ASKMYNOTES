@@ -57,7 +57,7 @@ export function Hero() {
             </p>
 
             <div className="mt-12 flex gap-6">
-                <Link href="/register">
+                <Link href="/study">
                     <SketchButton>
                         Get Started <ArrowRight size={18} />
                     </SketchButton>

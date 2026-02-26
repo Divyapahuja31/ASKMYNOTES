@@ -347,31 +347,71 @@ export default function DashboardPage() {
         <div className="flex-1 flex flex-col overflow-hidden">
           {/* No subject selected */}
           {!selectedSubject && (
-            <div className="flex-1 flex flex-col items-center justify-center p-8">
+            <div className="flex-1 flex flex-col items-center justify-center p-8 relative">
+              {/* Hand-drawn subtle decorations */}
+              <div className="absolute inset-0 pointer-events-none flex items-center justify-center opacity-30">
+                <svg className="w-[500px] h-[500px] text-yellow-400 animate-[spin_60s_linear_infinite]" viewBox="0 0 200 200" fill="none">
+                  <path d="M 100, 100 m -75, 0 a 75,75 0 1,0 150,0 a 75,75 0 1,0 -150,0" stroke="currentColor" strokeWidth="2" strokeDasharray="10 15" />
+                  <path d="M 100, 100 m -50, 0 a 50,50 0 1,0 100,0 a 50,50 0 1,0 -100,0" stroke="currentColor" strokeWidth="2" strokeDasharray="5 10" opacity="0.5" />
+                </svg>
+              </div>
+
               <motion.div
-                animate={{ y: [0, -10, 0], rotate: [-2, 2, -2] }}
-                transition={{ duration: 4, repeat: Infinity }}
-                className="text-7xl mb-6"
+                initial={{ scale: 0.9, opacity: 0, y: 20 }}
+                animate={{ scale: 1, opacity: 1, y: 0 }}
+                transition={{ type: "spring", bounce: 0.5 }}
+                className="relative bg-white border-2 border-slate-900 p-8 md:p-12 rounded-2xl shadow-[8px_8px_0px_0px_rgba(15,23,42,1)] max-w-lg w-full text-center z-10"
+                style={{ filter: "url(#squiggle)" }}
               >
-                📚
-              </motion.div>
-              <h2 className="text-2xl font-black tracking-tight text-slate-900 mb-2">
-                {subjects.length === 0 ? "Get Started" : "Select a Subject"}
-              </h2>
-              <p className="text-sm text-slate-500 text-center max-w-md mb-6">
-                {subjects.length === 0
-                  ? "Create your first subject to start uploading notes and asking questions."
-                  : "Click on a subject from the sidebar to view notes, chat, or start study mode."}
-              </p>
-              {subjects.length === 0 && (
-                <button
-                  onClick={() => setShowCreateModal(true)}
-                  className="rounded-md border-2 border-slate-900 bg-yellow-300 px-6 py-3 text-sm font-bold text-slate-900 shadow-[4px_4px_0px_0px_rgba(15,23,42,1)] hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0px_0px_rgba(15,23,42,1)] transition-all flex items-center gap-2"
+                {/* Decorative Pin/Tape */}
+                <div className="absolute -top-4 left-1/2 -translate-x-1/2 w-16 h-8 bg-rose-200 border-2 border-slate-900 -rotate-3" />
+
+                <motion.div
+                  animate={{ y: [0, -10, 0] }}
+                  transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+                  className="mx-auto w-28 h-28 bg-yellow-100 rounded-full border-2 border-slate-900 flex items-center justify-center mb-6 shadow-inner"
                 >
-                  <BookOpen size={18} />
-                  Create Your First Subject
-                </button>
-              )}
+                  <BookOpen className="w-14 h-14 text-yellow-600" />
+                </motion.div>
+
+                <h2 className="text-3xl font-black tracking-tighter text-slate-900 mb-4">
+                  {subjects.length === 0 ? "Let's Get Started! ✨" : "Select a Subject"}
+                </h2>
+
+                <p className="text-slate-500 font-medium mb-10 leading-relaxed text-lg">
+                  {subjects.length === 0
+                    ? "Your digital notebook is empty. Create your first subject to start uploading notes and getting magical answers."
+                    : "Pick a subject from the sidebar to view your notes, chat with AI, and ace your exams."}
+                </p>
+
+                {subjects.length === 0 && (
+                  <div className="relative inline-block w-full sm:w-auto">
+                    {/* Hand-drawn arrow pointing to button */}
+                    <div className="absolute -left-20 -top-8 text-indigo-500 hidden sm:block">
+                      <svg width="70" height="70" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M20 20 Q 50 10, 80 50 T 90 80" stroke="currentColor" strokeWidth="4" strokeLinecap="round" fill="none" />
+                        <path d="M75 75 L90 80 L95 65" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+                      </svg>
+                    </div>
+
+                    <button
+                      onClick={() => setShowCreateModal(true)}
+                      className="group relative inline-flex items-center justify-center gap-3 px-8 py-4 font-bold text-slate-900 transition-all w-full text-lg cursor-pointer max-w-sm mx-auto"
+                    >
+                      {/* Button Background */}
+                      <span className="absolute inset-0 rounded-xl border-2 border-slate-900 bg-yellow-300 transition-transform group-hover:translate-x-1.5 group-hover:translate-y-1.5" />
+                      {/* Button Shadow */}
+                      <span className="absolute inset-0 -z-10 translate-x-2.5 translate-y-2.5 rounded-xl border-2 border-slate-900 bg-slate-900" />
+
+                      {/* Button Content */}
+                      <span className="relative flex items-center gap-3">
+                        <BookOpen size={24} className="transition-transform group-hover:-rotate-12" />
+                        Create Your First Subject
+                      </span>
+                    </button>
+                  </div>
+                )}
+              </motion.div>
             </div>
           )}
 
