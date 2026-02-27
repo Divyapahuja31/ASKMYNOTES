@@ -2,7 +2,7 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   async rewrites() {
-    const rawUrl = process.env.NEXT_PUBLIC_BACKEND_URL ?? "https://askmynotes-backend.onrender.com";
+    const rawUrl = "https://askmynotes-backend.onrender.com";
     const backendUrl = rawUrl.endsWith("/") ? rawUrl.slice(0, -1) : rawUrl;
 
     return [

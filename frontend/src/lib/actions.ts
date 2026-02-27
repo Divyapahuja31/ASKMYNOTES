@@ -66,7 +66,7 @@ function normalizeBackendBaseUrl(): string {
   }
 
   // If server-side rendering, hitting the backend directly is needed
-  const raw = process.env.NEXT_PUBLIC_BACKEND_URL ?? DEFAULT_BACKEND_BASE_URL;
+  const raw = "https://askmynotes-backend.onrender.com";
   return raw.endsWith("/") ? raw.slice(0, -1) : raw;
 }
 
