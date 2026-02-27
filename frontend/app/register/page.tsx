@@ -210,7 +210,8 @@ export default function RegisterPage(): React.ReactElement | null {
       const result = await authClient.signUp.email({
         name: formData.name.trim(),
         email: formData.email.trim().toLowerCase(),
-        password: formData.password
+        password: formData.password,
+        callbackURL: `${window.location.origin}/study`
       });
 
       if (result.error) {
