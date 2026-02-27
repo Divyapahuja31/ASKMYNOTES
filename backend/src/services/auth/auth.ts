@@ -59,9 +59,13 @@ export function createBetterAuth(prisma: PrismaClient, env: BetterAuthEnv) {
     });
   };
 
+  const baseAuthUrl = env.frontendUrl
+    ? (env.frontendUrl.endsWith("/") ? `${env.frontendUrl}api/auth` : `${env.frontendUrl}/api/auth`)
+    : env.betterAuthUrl;
+
   return betterAuth({
     secret: env.betterAuthSecret,
-    baseURL: env.betterAuthUrl,
+    baseURL: baseAuthUrl,
     trustedOrigins: Array.from(trustedOrigins),
     database: prismaAdapter(prisma, {
       provider: "postgresql"
