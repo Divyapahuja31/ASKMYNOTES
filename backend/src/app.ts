@@ -135,6 +135,7 @@ export function createApp(envInput?: AppEnv): AppBootstrap {
   const app = express();
 
   // ── Security middleware ──
+  app.set("trust proxy", 1);
   app.use(helmet());
   app.use(cors({
     origin: true,

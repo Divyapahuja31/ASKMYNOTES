@@ -121,7 +121,16 @@ export function createBetterAuth(prisma: PrismaClient, env: BetterAuthEnv) {
         );
       }
     },
-    ...(socialProviders ? { socialProviders } : {})
+    ...(socialProviders ? { socialProviders } : {}),
+    advanced: {
+      crossSubDomainCookies: {
+        enabled: true
+      },
+      defaultCookieAttributes: {
+        sameSite: "none",
+        secure: true
+      }
+    }
   });
 }
 
