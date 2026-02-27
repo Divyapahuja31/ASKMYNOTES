@@ -1,0 +1,100 @@
+2026-02-26 19:32:05  (node:83) Warning: SECURITY WARNING: The SSL modes 'prefer', 'require', and 'verify-ca' are treated as aliases for 'verify-full'.
+2026-02-26 19:32:05  In the next major version (pg-connection-string v3.0.0 and pg v9.0.0), these modes will adopt standard libpq semantics, which have weaker security guarantees.
+2026-02-26 19:32:05  
+2026-02-26 19:32:05  To prepare for this change:
+2026-02-26 19:32:05  - If you want the current behavior, explicitly use 'sslmode=verify-full'
+2026-02-26 19:32:05  - If you want libpq compatibility now, use 'uselibpqcompat=true&sslmode=require'
+2026-02-26 19:32:05  
+2026-02-26 19:32:05  See https://www.postgresql.org/docs/current/libpq-ssl.html for libpq SSL mode definitions.
+2026-02-26 19:32:05  (Use `node --trace-warnings ...` to show where the warning was created)
+2026-02-26 19:33:48  [auth-email] Failed to send verification email to hhirawat5@gmail.com: connect ENETUNREACH 2607:f8b0:400e:c01::6c:465 - Local (:::0)
+2026-02-26 19:36:46  [0;32m[1m==> [0m[1mDetected service running on port 3001[0m
+2026-02-26 19:36:46  [0;32m[1m==> [0m[1mDocs on specifying a port: https://render.com/docs/web-services#port-binding[0m
+2026-02-26 19:40:00  up to date, audited 552 packages in 2s
+2026-02-26 19:40:00  
+2026-02-26 19:40:00  112 packages are looking for funding
+2026-02-26 19:40:00    run `npm fund` for details
+2026-02-26 19:40:00  
+2026-02-26 19:40:00  9 moderate severity vulnerabilities
+2026-02-26 19:40:00  
+2026-02-26 19:40:00  To address issues that do not require attention, run:
+2026-02-26 19:40:00    npm audit fix
+2026-02-26 19:40:00  
+2026-02-26 19:40:00  To address all issues possible (including breaking changes), run:
+2026-02-26 19:40:00    npm audit fix --force
+2026-02-26 19:40:00  
+2026-02-26 19:40:00  Some issues need review, and may require choosing
+2026-02-26 19:40:00  a different dependency.
+2026-02-26 19:40:00  
+2026-02-26 19:40:00  Run `npm audit` for details.
+2026-02-26 19:40:00  
+2026-02-26 19:40:00  > askmynotes-backend@0.1.0 build
+2026-02-26 19:40:00  > prisma generate && tsup src/server.ts --format esm --target node20 --outDir dist --clean --sourcemap
+2026-02-26 19:40:00  
+2026-02-26 19:40:01  Loaded Prisma config from prisma.config.ts.
+2026-02-26 19:40:01  
+2026-02-26 19:40:01  Prisma schema loaded from prisma/schema.prisma.
+2026-02-26 19:40:01  
+2026-02-26 19:40:01  ✔ Generated Prisma Client (7.4.1) to ./generated/prisma in 86ms
+2026-02-26 19:40:01  
+2026-02-26 19:40:02  CLI Building entry: src/server.ts
+2026-02-26 19:40:02  CLI Using tsconfig: tsconfig.json
+2026-02-26 19:40:02  CLI tsup v8.5.1
+2026-02-26 19:40:02  CLI Target: node20
+2026-02-26 19:40:02  CLI Cleaning output folder
+2026-02-26 19:40:02  ESM Build start
+2026-02-26 19:40:02  ESM dist/server.js     115.09 KB
+2026-02-26 19:40:02  ESM dist/server.js.map 254.71 KB
+2026-02-26 19:40:02  ESM ⚡️ Build success in 43ms
+2026-02-26 19:40:13  [34;1m==>[0;22m [1mUploading build...[22m
+2026-02-26 19:40:27  [34;1m==>[0;22m [1mUploaded in 9.3s. Compression took 4.1s[22m
+2026-02-26 19:40:27  [32;1m==>[0;22m [1mBuild successful 🎉[22m
+2026-02-26 19:40:45  [0;34m[1m==> [0m[1mDeploying...[0m
+2026-02-26 19:40:45  [0;34m[1m==> [0m[1mSetting WEB_CONCURRENCY=1 by default, based on available CPUs in the instance[0m
+2026-02-26 19:42:12  [32m[1m==>(B[m [1mRunning 'npm run start'(B[m
+2026-02-26 19:42:13  
+2026-02-26 19:42:13  > askmynotes-backend@0.1.0 start
+2026-02-26 19:42:13  > node dist/server.js
+2026-02-26 19:42:13  
+2026-02-26 19:42:32  [dotenv@17.3.1] injecting env (0) from .env -- tip: 🔐 encrypt with Dotenvx: https://dotenvx.com
+2026-02-26 19:42:32  Both GOOGLE_API_KEY and GEMINI_API_KEY are set. Using GOOGLE_API_KEY.
+2026-02-26 19:42:32  Both GOOGLE_API_KEY and GEMINI_API_KEY are set. Using GOOGLE_API_KEY.
+2026-02-26 19:42:32  Both GOOGLE_API_KEY and GEMINI_API_KEY are set. Using GOOGLE_API_KEY.
+2026-02-26 19:42:32  Both GOOGLE_API_KEY and GEMINI_API_KEY are set. Using GOOGLE_API_KEY.
+2026-02-26 19:42:32  Both GOOGLE_API_KEY and GEMINI_API_KEY are set. Using GOOGLE_API_KEY.
+2026-02-26 19:42:32  Both GOOGLE_API_KEY and GEMINI_API_KEY are set. Using GOOGLE_API_KEY.
+2026-02-26 19:42:32  [2m2026-02-26T19:42:32.558Z[0m [33mWARN[0m [1m[Better Auth]:[0m [better-auth] Warning: your BETTER_AUTH_SECRET should be at least 32 characters long for adequate security. Generate one with `npx @better-auth/cli secret` or `openssl rand -base64 32`.
+2026-02-26 19:42:32  [2m2026-02-26T19:42:32.559Z[0m [33mWARN[0m [1m[Better Auth]:[0m [better-auth] Warning: your BETTER_AUTH_SECRET appears low-entropy. Use a randomly generated secret for production.
+2026-02-26 19:42:32  [2m2026-02-26T19:42:32.644Z[0m [33mWARN[0m [1m[Better Auth]:[0m [better-auth] Warning: your BETTER_AUTH_SECRET should be at least 32 characters long for adequate security. Generate one with `npx @better-auth/cli secret` or `openssl rand -base64 32`.
+2026-02-26 19:42:32  [2m2026-02-26T19:42:32.650Z[0m [33mWARN[0m [1m[Better Auth]:[0m [better-auth] Warning: your BETTER_AUTH_SECRET appears low-entropy. Use a randomly generated secret for production.
+2026-02-26 19:42:32  AskMyNotes backend listening on port 3001
+2026-02-26 19:42:37  [0;32m[1m==> [0m[1mYour service is live 🎉[0m
+2026-02-26 19:42:37  [0;32m[1m==> [0m[1m[0m
+2026-02-26 19:42:37  [0;32m[1m==> [0m[1m///////////////////////////////////////////////////////////[0m
+2026-02-26 19:42:37  [0;32m[1m==> [0m[1m[0m
+2026-02-26 19:42:37  [0;32m[1m==> [0m[1mAvailable at your primary URL https://askmynotes-backend.onrender.com[0m
+2026-02-26 19:42:37  [0;32m[1m==> [0m[1m[0m
+2026-02-26 19:42:37  [0;32m[1m==> [0m[1m///////////////////////////////////////////////////////////[0m
+2026-02-26 19:47:36  [0;32m[1m==> [0m[1mDetected service running on port 3001[0m
+2026-02-26 19:47:36  [0;32m[1m==> [0m[1mDocs on specifying a port: https://render.com/docs/web-services#port-binding[0m
+2026-02-26 21:12:28  (node:83) Warning: SECURITY WARNING: The SSL modes 'prefer', 'require', and 'verify-ca' are treated as aliases for 'verify-full'.
+2026-02-26 21:12:28  In the next major version (pg-connection-string v3.0.0 and pg v9.0.0), these modes will adopt standard libpq semantics, which have weaker security guarantees.
+2026-02-26 21:12:28  
+2026-02-26 21:12:28  To prepare for this change:
+2026-02-26 21:12:28  - If you want the current behavior, explicitly use 'sslmode=verify-full'
+2026-02-26 21:12:28  - If you want libpq compatibility now, use 'uselibpqcompat=true&sslmode=require'
+2026-02-26 21:12:28  
+2026-02-26 21:12:28  See https://www.postgresql.org/docs/current/libpq-ssl.html for libpq SSL mode definitions.
+2026-02-26 21:12:28  (Use `node --trace-warnings ...` to show where the warning was created)
+2026-02-26 21:12:48  [auth-email] Failed to send verification email to gi229154@gmail.com: Connection timeout
+2026-02-26 21:13:58  [auth-email] Failed to send verification email to deepakpathik17384@gmail.com: Connection timeout
+2026-02-27 01:24:54  [2m2026-02-27T01:24:54.352Z[0m [31mERROR[0m [1m[Better Auth]:[0m User not found { email: 'nitya.jain@adypu.edu.in' }
+2026-02-27 01:25:09  [2m2026-02-27T01:25:09.746Z[0m [31mERROR[0m [1m[Better Auth]:[0m User not found { email: 'nityaprofessional6402@gmail.com' }
+2026-02-27 01:25:22  [2m2026-02-27T01:25:22.457Z[0m [31mERROR[0m [1m[Better Auth]:[0m User not found { email: 'nityaprofessional6402@gmail.com' }
+2026-02-27 01:25:38  [2m2026-02-27T01:25:38.350Z[0m [31mERROR[0m [1m[Better Auth]:[0m User not found { email: 'nityaprofessional6402@gmail.com' }
+2026-02-27 01:26:21  [auth-email] Failed to send verification email to nityaprofessional6402@gmail.com: connect ENETUNREACH 2607:f8b0:400e:c0c::6c:465 - Local (:::0)
+2026-02-27 01:44:52  [2m2026-02-27T01:44:52.674Z[0m [31mERROR[0m [1m[Better Auth]:[0m State not found undefined
+2026-02-27 01:47:21  [2m2026-02-27T01:47:21.496Z[0m [31mERROR[0m [1m[Better Auth]:[0m Failed to parse state [StateError [BetterAuthError]: State mismatch: State not persisted correctly] {
+2026-02-27 01:47:21    code: 'state_security_mismatch',
+2026-02-27 01:47:21    details: { state: '1SQ7npR1yNhMx1ySgn3vgPwtQh27svlm' }
+2026-02-27 01:47:21  }

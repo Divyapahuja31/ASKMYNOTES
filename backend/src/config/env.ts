@@ -67,6 +67,7 @@ export interface AppEnv {
   smtpFrom: string;
   googleOauthClientId?: string;
   googleOauthClientSecret?: string;
+  resendApiKey?: string;
   frontendUrl: string;
 
 }
@@ -115,6 +116,7 @@ export function loadAppEnv(): AppEnv {
     smtpFrom: readEnv("SMTP_FROM"),
     googleOauthClientId: readOptionalEnv("GOOGLE_CLIENT_ID"),
     googleOauthClientSecret: readOptionalEnv("GOOGLE_CLIENT_SECRET"),
+    resendApiKey: readOptionalEnv("RESEND_API_KEY"),
     frontendUrl: readEnv("FRONTEND_URL", "http://localhost:3000")
   };
 }
