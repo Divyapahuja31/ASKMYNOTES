@@ -219,7 +219,6 @@ export default function RegisterPage(): React.ReactElement | null {
         return;
       }
 
-      // Since email verification is disabled, user is immediately signed in
       await refetchSession();
       router.replace("/study");
       router.refresh();
